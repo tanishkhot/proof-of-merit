@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { useAvailableSkills, useSkillClaim, useChallengeClaim, useTransactionStatus, useHasUserSkill } from '@/hooks/useSkillVerification';
 import { useContractEvents } from '@/hooks/useContractEvents';
 import { AddTestClaim } from '@/components/add-test-claim';
-import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
+import { SKILL_CLAIM_STATUS, SKILL_VERIFICATION_ADDRESS } from '@/lib/contracts';
 
 const ClaimsPage = () => {
   const { isConnected, address } = useAccount();
@@ -13,6 +13,13 @@ const ClaimsPage = () => {
   const { challengeClaim, hash, error: challengeError, isPending } = useChallengeClaim();
   const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
   const { data: claims, isLoading: loading, error } = useContractEvents();
+
+  // Debug: Log the claims data
+  useEffect(() => {
+    console.log('Claims data:', claims);
+    console.log('Loading:', loading);
+    console.log('Error:', error);
+  }, [claims, loading, error]);
 
   // Claims are now loaded from the useContractEvents hook
 
@@ -112,6 +119,9 @@ const ClaimsPage = () => {
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             View and challenge skill claims that are open for verification
           </p>
+          <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+            📡 Loading real data from Flow Testnet contract: {SKILL_VERIFICATION_ADDRESS}
+          </div>
         </div>
 
         {/* Add Test Claim Component (Development Only) */}

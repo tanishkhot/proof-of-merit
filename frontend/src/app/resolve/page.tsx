@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
-import { useSkillClaims, useAllChallenges, useVoteOnChallenge, useTransactionStatus } from '@/hooks/useSkillVerification';
+import { useVoteOnChallenge, useTransactionStatus } from '@/hooks/useSkillVerification';
+import { useContractEvents, useContractChallenges } from '@/hooks/useContractEvents';
 import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
 const ResolvePage = () => {
   const { isConnected, address } = useAccount();
-  const { data: skillClaims, isLoading: claimsLoading } = useSkillClaims();
-  const { data: challenges, isLoading: challengesLoading } = useAllChallenges();
+  const { data: skillClaims, isLoading: claimsLoading } = useContractEvents();
+  const { data: challenges, isLoading: challengesLoading } = useContractChallenges();
   const { voteOnChallenge, hash, error, isPending } = useVoteOnChallenge();
   const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
 
