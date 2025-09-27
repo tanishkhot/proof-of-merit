@@ -306,3 +306,124 @@ contract SkillVerification {
 
         emit ClaimChallenged(msg.sender, _claimId, _reason, msg.value);
     }
+        /**
+     * @dev Resolver votes on a challenged claim
+     * @param _claimId The ID of the claim to vote on
+     * @param _supportsClaimant Whether the resolver supports the claimant
+     * @param _reasoning The reasoning for the vote
+     */
+    function voteOnChallenge(uint256 _claimId, bool _supportsClaimant, string memory _reasoning) public onlyVerifiedUser(claims[_claimId].skillId) {
+        require(_claimId > 0 && _claimId <= nextClaimId, "Invalid claim ID");
+        require(claims[_claimId].status == Status.CHALLENGED, "Claim is not challenged");
+        require(bytes(_reasoning).length > 0, "Reasoning cannot be empty");
+        require(msg.sender != claims[_claimId].user, "Claimant cannot vote on their own claim");
+        
+        // Check if resolver already voted
+        ResolverVote[] storage votes = resolverVotes[_claimId];
+        for (uint256 i = 0; i < votes.length; i++) {
+            require(votes[i].resolver != msg.sender, "You have already voted on this challenge");
+        }
+
+        // Add the vote
+        votes.push(ResolverVote({
+            resolver: msg.sender,
+            supportsClaimant: _supportsClaimant,
+            reasoning: _reasoning,
+            timestamp: block.timestamp
+        }));
+
+        emit ResolverVoted(msg.sender, _claimId, _supportsClaimant, _reasoning);
+    }
+
+    /**
+     * @dev Owner resolves a challenge based on resolver votes (for demo purposes)
+     * @param _claimId The ID of the claim to resolve
+     */
+    function resolveChallenge(uint256 _claimId) public onlyOwner {
+        require(_claimId > 0 && _claimId <= nextClaimId, "Invalid claim ID");
+        require(claims[_claimId].status == Status.CHALLENGED, "Claim is not challenged");
+
+        SkillClaim storage claim = claims[_claimId];
+        ResolverVote[] storage votes = resolverVotes[_claimId];
+        
+        require(votes.length > 0, "No votes cast yet");
+
+        // Count votes
+        uint256 claimantVotes = 0;
+        uint256 challengerVotes = 0;
+        
+        for (uint256 i = 0; i < votes.length; i++) {
+            if (votes[i].supportsClaimant) {
+                claimantVotes++;
+            } else {
+                challengerVotes++;
+            }
+        }
+
+        bool claimantWon = claimantVotes > challengerVotes;
+        address winner;
+        uint256 winnerAmount;
+        uint256 platformAmount;
+        uint256 resolverAmount;
+
+        // Find the challenger
+        address challenger;
+        for (uint256 i = 1; i <= nextChallengeId; i++) {
+            if (challenges[i].claimId == _claimId) {
+                challenger = challenges[i].challenger;
+                break;
+            }
+        }
+
+        if (claimantWon) {
+            winner = claim.user;
+            claim.status = Status.VERIFIED;
+            
+            // Add to verified skills registry
+            _addVerifiedSkill(claim.user, claim.skillId);
+            
+            emit SkillVerified(claim.user, claim.skillId);
+
+            // Claimant gets: their own stake + 25% of challenger's stake
+            winnerAmount = claim.stakeAmount + (PREDEFINED_STAKE_AMOUNT * 25) / 100;
+            
+            // Platform gets: 25% of challenger's stake
+            platformAmount = (PREDEFINED_STAKE_AMOUNT * 25) / 100;
+            
+            // Resolver gets: 50% of challenger's stake
+            resolverAmount = (PREDEFINED_STAKE_AMOUNT * 50) / 100;
+        } else {
+            winner = challenger;
+            claim.status = Status.REJECTED;
+            
+            // Challenger gets: their own stake + 25% of claimant's stake
+            winnerAmount = PREDEFINED_STAKE_AMOUNT + (claim.stakeAmount * 25) / 100;
+            
+            // Platform gets: 25% of claimant's stake
+            platformAmount = (claim.stakeAmount * 25) / 100;
+            
+            // Resolver gets: 50% of claimant's stake
+            resolverAmount = (claim.stakeAmount * 50) / 100;
+        }
+
+        // Distribute the stakes
+        if (winnerAmount > 0) {
+            (bool success1, ) = winner.call{value: winnerAmount}("");
+            require(success1, "Winner transfer failed");
+        }
+
+        if (platformAmount > 0) {
+            (bool success2, ) = owner.call{value: platformAmount}("");
+            require(success2, "Platform transfer failed");
+        }
+
+        if (resolverAmount > 0) {
+            (bool success3, ) = resolver.call{value: resolverAmount}("");
+            require(success3, "Resolver transfer failed");
+        }
+
+        uint256 totalDistributed = winnerAmount + platformAmount + resolverAmount;
+        emit ChallengeResolved(_claimId, claimantWon, winner, totalDistributed);
+        emit StakeDistributed(_claimId, winner, winnerAmount, platformAmount, resolverAmount);
+    }
+
