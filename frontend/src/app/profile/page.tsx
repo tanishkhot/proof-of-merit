@@ -2,13 +2,15 @@
 
 import React from 'react';
 import { useAccount } from 'wagmi';
-import { useUserSkills, useSkillClaims } from '@/hooks/useSkillVerification';
+import { useUserSkills } from '@/hooks/useSkillVerification';
+import { useContractEvents, useSkillAssignmentEvents } from '@/hooks/useContractEvents';
 import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
 const ProfilePage = () => {
   const { isConnected, address } = useAccount();
   const { data: userSkills, isLoading: skillsLoading } = useUserSkills(address);
-  const { data: skillClaims, isLoading: claimsLoading } = useSkillClaims();
+  const { data: skillClaims, isLoading: claimsLoading } = useContractEvents();
+  const { data: skillAssignments } = useSkillAssignmentEvents();
 
   const getStatusText = (status: number) => {
     switch (status) {
@@ -33,6 +35,11 @@ const ProfilePage = () => {
   // Filter claims for current user
   const userClaims = skillClaims?.filter((claim: any) => 
     claim.user.toLowerCase() === address?.toLowerCase()
+  ) || [];
+
+  // Filter skill assignments for current user
+  const userSkillAssignments = skillAssignments?.filter((assignment: any) => 
+    assignment.user.toLowerCase() === address?.toLowerCase()
   ) || [];
 
       if (!isConnected) {
@@ -75,11 +82,44 @@ const ProfilePage = () => {
         {/* Verified Skills */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
           <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Verified Skills</h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            Skill verification status will be shown here once the contract has skills available for claiming.
-            Currently, the contract needs to have skills added by the owner before users can claim them.
-          </p>
+          {skillsLoading ? (
+            <p className="text-gray-600 dark:text-gray-400">Loading skills...</p>
+          ) : userSkills && userSkills.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {userSkills.map((skill: string) => (
+                <span key={skill} className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
+                  {skill}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400">No skills verified yet.</p>
+          )}
         </div>
+
+        {/* Directly Assigned Skills */}
+        {userSkillAssignments.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Directly Assigned Skills</h3>
+            <div className="space-y-3">
+              {userSkillAssignments.map((assignment: any, index: number) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <span className="bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-medium">
+                      {assignment.skillId}
+                    </span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Assigned by Admin
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {new Date(assignment.timestamp * 1000).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Skill Claims History */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">

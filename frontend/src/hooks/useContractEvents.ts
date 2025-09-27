@@ -1,119 +1,142 @@
-import { useReadContract } from 'wagmi';
+import { useState, useEffect } from 'react';
+import { usePublicClient } from 'wagmi';
 import { SKILL_VERIFICATION_ADDRESS, SKILL_VERIFICATION_ABI } from '@/lib/contracts';
+import { parseAbiItem } from 'viem';
 
-// This hook would be used to fetch contract events in a real implementation
-// For now, it returns mock data but shows the structure for real event fetching
-
+// Real implementation using viem to fetch contract events
 export function useContractEvents() {
-  // In a real implementation, you would:
-  // 1. Use wagmi's useWatchContractEvent to listen for events
-  // 2. Or use a service like The Graph to index events
-  // 3. Or fetch events using viem's getLogs function
-  
-  const mockEvents = [
-    {
-      eventName: 'ClaimStaked',
-      args: {
-        claimId: 1n,
-        user: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
-        skillId: 'React',
-        stakeAmount: 10000000000000000n, // 0.01 ETH
-        timestamp: Date.now() - 3600000
+  const publicClient = usePublicClient();
+  const [events, setEvents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      if (!publicClient) {
+        setIsLoading(false);
+        return;
       }
-    },
-    {
-      eventName: 'SolutionSubmitted',
-      args: {
-        claimId: 1n,
-        solution: 'https://github.com/user/react-search-component',
-        timestamp: Date.now() - 1800000
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        console.log('Fetching contract events from:', SKILL_VERIFICATION_ADDRESS);
+
+        // Fetch all relevant events from the contract
+        const [claimStakedLogs, solutionSubmittedLogs, claimChallengedLogs, challengeResolvedLogs] = await Promise.all([
+          // ClaimStaked events
+          publicClient.getLogs({
+            address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+            event: parseAbiItem('event ClaimStaked(uint256 indexed claimId, address indexed user, string skillId, uint256 stakeAmount, uint256 timestamp)'),
+            fromBlock: 'earliest',
+            toBlock: 'latest'
+          }).catch(err => {
+            console.log('No ClaimStaked events found:', err.message);
+            return [];
+          }),
+          // SolutionSubmitted events
+          publicClient.getLogs({
+            address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+            event: parseAbiItem('event SolutionSubmitted(uint256 indexed claimId, string solution, uint256 timestamp)'),
+            fromBlock: 'earliest',
+            toBlock: 'latest'
+          }).catch(err => {
+            console.log('No SolutionSubmitted events found:', err.message);
+            return [];
+          }),
+          // ClaimChallenged events
+          publicClient.getLogs({
+            address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+            event: parseAbiItem('event ClaimChallenged(uint256 indexed claimId, address indexed challenger, string reason, uint256 stakeAmount, uint256 timestamp)'),
+            fromBlock: 'earliest',
+            toBlock: 'latest'
+          }).catch(err => {
+            console.log('No ClaimChallenged events found:', err.message);
+            return [];
+          }),
+          // ChallengeResolved events
+          publicClient.getLogs({
+            address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+            event: parseAbiItem('event ChallengeResolved(uint256 indexed claimId, bool claimantWon, address winner, uint256 totalDistributed)'),
+            fromBlock: 'earliest',
+            toBlock: 'latest'
+          }).catch(err => {
+            console.log('No ChallengeResolved events found:', err.message);
+            return [];
+          })
+        ]);
+
+        console.log('Fetched events:', {
+          claimStaked: claimStakedLogs.length,
+          solutionSubmitted: solutionSubmittedLogs.length,
+          claimChallenged: claimChallengedLogs.length,
+          challengeResolved: challengeResolvedLogs.length
+        });
+
+        // Combine all events and sort by block number
+        const allEvents = [
+          ...claimStakedLogs.map(log => ({ ...log, eventName: 'ClaimStaked' })),
+          ...solutionSubmittedLogs.map(log => ({ ...log, eventName: 'SolutionSubmitted' })),
+          ...claimChallengedLogs.map(log => ({ ...log, eventName: 'ClaimChallenged' })),
+          ...challengeResolvedLogs.map(log => ({ ...log, eventName: 'ChallengeResolved' }))
+        ].sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber));
+
+        setEvents(allEvents);
+      } catch (err) {
+        console.error('Error fetching contract events:', err);
+        setError(err as Error);
+        // Fallback to empty array if there's an error
+        setEvents([]);
+      } finally {
+        setIsLoading(false);
       }
-    },
-    {
-      eventName: 'ClaimStaked',
-      args: {
-        claimId: 2n,
-        user: '0x8ba1f109551bD432803012645Hac136c4c8b8d8e',
-        skillId: 'Solidity',
-        stakeAmount: 10000000000000000n,
-        timestamp: Date.now() - 7200000
-      }
-    },
-    {
-      eventName: 'ClaimStaked',
-      args: {
-        claimId: 3n,
-        user: '0x1234567890123456789012345678901234567890',
-        skillId: 'JavaScript',
-        stakeAmount: 10000000000000000n,
-        timestamp: Date.now() - 1800000
-      }
-    },
-    {
-      eventName: 'SolutionSubmitted',
-      args: {
-        claimId: 3n,
-        solution: 'https://github.com/user/lcs-algorithm',
-        timestamp: Date.now() - 900000
-      }
-    }
-  ];
+    };
+
+    fetchEvents();
+  }, [publicClient]);
 
   // Process events to create claims data
   const processEvents = (events: any[]) => {
     const claimsMap = new Map();
     
     events.forEach(event => {
-      const claimId = Number(event.args.claimId);
+      const { eventName, args } = event;
       
-      if (!claimsMap.has(claimId)) {
+      if (eventName === 'ClaimStaked') {
+        const claimId = Number(args.claimId);
         claimsMap.set(claimId, {
           claimId,
-          user: '',
-          skillId: '',
-          stakeAmount: '0',
+          user: args.user,
+          skillId: args.skillId,
+          stakeAmount: args.stakeAmount.toString(),
           status: 0, // PENDING
-          claimTimestamp: 0,
-          problemDeadline: 0,
-          challengeDeadline: 0,
+          claimTimestamp: Number(args.timestamp),
+          problemDeadline: Number(args.timestamp) + (2 * 60 * 60), // 2 hours
+          challengeDeadline: Number(args.timestamp) + (7 * 24 * 60 * 60), // 7 days
           problemSolved: false,
-          problemStatement: '',
+          problemStatement: getProblemStatement(args.skillId),
           solution: ''
         });
-      }
-      
-      const claim = claimsMap.get(claimId);
-      
-      switch (event.eventName) {
-        case 'ClaimStaked':
-          claim.user = event.args.user;
-          claim.skillId = event.args.skillId;
-          claim.stakeAmount = event.args.stakeAmount.toString();
-          claim.claimTimestamp = Number(event.args.timestamp);
-          claim.problemDeadline = claim.claimTimestamp + (2 * 60 * 60 * 1000); // 2 hours
-          claim.challengeDeadline = claim.claimTimestamp + (72 * 60 * 60 * 1000); // 72 hours
-          
-          // Add problem statements based on skill
-          const problemStatements: { [key: string]: string } = {
-            'React': 'Build a React component that displays a list of users with search functionality. The component should include filtering, sorting, and pagination.',
-            'Solidity': 'Create a smart contract for a simple voting system where users can propose options and vote on them. Include access control and vote counting.',
-            'JavaScript': 'Implement a function that finds the longest common subsequence between two strings. Optimize for both time and space complexity.',
-            'Python': 'Create a REST API using Flask or FastAPI that manages a todo list with CRUD operations, user authentication, and data validation.',
-            'Node.js': 'Build a real-time chat application using Socket.io with rooms, private messaging, and message history.',
-            'TypeScript': 'Create a type-safe state management system similar to Redux but with better TypeScript integration and middleware support.'
-          };
-          claim.problemStatement = problemStatements[claim.skillId] || `Complete a ${claim.skillId} project that demonstrates your skills.`;
-          break;
-        case 'SolutionSubmitted':
-          claim.solution = event.args.solution;
+      } else if (eventName === 'SolutionSubmitted') {
+        const claimId = Number(args.claimId);
+        const claim = claimsMap.get(claimId);
+        if (claim) {
+          claim.solution = args.solution;
           claim.problemSolved = true;
-          break;
-        case 'ClaimChallenged':
+        }
+      } else if (eventName === 'ClaimChallenged') {
+        const claimId = Number(args.claimId);
+        const claim = claimsMap.get(claimId);
+        if (claim) {
           claim.status = 1; // CHALLENGED
-          break;
-        case 'ClaimResolved':
-          claim.status = event.args.claimantWon ? 2 : 3; // VERIFIED or REJECTED
-          break;
+        }
+      } else if (eventName === 'ChallengeResolved') {
+        const claimId = Number(args.claimId);
+        const claim = claimsMap.get(claimId);
+        if (claim) {
+          claim.status = args.claimantWon ? 2 : 3; // VERIFIED or REJECTED
+        }
       }
     });
     
@@ -121,41 +144,134 @@ export function useContractEvents() {
   };
 
   return {
-    data: processEvents(mockEvents),
-    isLoading: false,
-    error: null
+    data: processEvents(events),
+    isLoading,
+    error
   };
 }
 
-// Example of how to use real contract events (commented out for reference)
-/*
-export function useRealContractEvents() {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+// Helper function to get problem statements
+function getProblemStatement(skillId: string): string {
+  const problemStatements: { [key: string]: string } = {
+    'React': 'Build a React component that displays a list of users with search functionality. The component should include filtering, sorting, and pagination.',
+    'Solidity': 'Create a smart contract for a simple voting system where users can propose options and vote on them. Include access control and vote counting.',
+    'JavaScript': 'Implement a function that finds the longest common subsequence between two strings. Optimize for both time and space complexity.',
+    'Python': 'Create a REST API using Flask or FastAPI that manages a todo list with CRUD operations, user authentication, and data validation.',
+    'Node.js': 'Build a real-time chat application using Socket.io with rooms, private messaging, and message history.',
+    'TypeScript': 'Create a type-safe state management system similar to Redux but with better TypeScript integration and middleware support.',
+    'Web3': 'Build a DApp that allows users to mint NFTs with custom metadata and view their collection with a clean interface.',
+    'Blockchain': 'Create a simple blockchain implementation with proof-of-work, transaction validation, and a basic wallet system.'
+  };
+  
+  return problemStatements[skillId] || `Complete a ${skillId} project that demonstrates your skills.`;
+}
+
+// Hook to get challenges from events
+export function useContractChallenges() {
+  const publicClient = usePublicClient();
+  const [challenges, setChallenges] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchChallenges = async () => {
+      if (!publicClient) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // Using viem to get logs
-        const logs = await publicClient.getLogs({
-          address: SKILL_VERIFICATION_ADDRESS,
-          event: parseAbiItem('event ClaimStaked(uint256 indexed claimId, address indexed user, string skillId, uint256 stakeAmount)'),
+        setIsLoading(true);
+        setError(null);
+
+        const challengeLogs = await publicClient.getLogs({
+          address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+          event: parseAbiItem('event ClaimChallenged(uint256 indexed claimId, address indexed challenger, string reason, uint256 stakeAmount, uint256 timestamp)'),
           fromBlock: 'earliest',
           toBlock: 'latest'
+        }).catch(err => {
+          console.log('No ClaimChallenged events found:', err.message);
+          return [];
         });
-        
-        setEvents(logs);
+
+        const processedChallenges = challengeLogs.map(log => ({
+          claimId: Number(log.args.claimId),
+          challenger: log.args.challenger,
+          reason: log.args.reason,
+          stakeAmount: log.args.stakeAmount.toString(),
+          challengeTimestamp: Number(log.args.timestamp)
+        }));
+
+        setChallenges(processedChallenges);
       } catch (err) {
-        setError(err);
+        console.error('Error fetching challenges:', err);
+        setError(err as Error);
+        setChallenges([]);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchEvents();
-  }, []);
+    fetchChallenges();
+  }, [publicClient]);
 
-  return { data: events, isLoading: loading, error };
+  return {
+    data: challenges,
+    isLoading,
+    error
+  };
 }
-*/
+
+// Hook to listen for skill assignment events
+export function useSkillAssignmentEvents() {
+  const publicClient = usePublicClient();
+  const [skillAssignments, setSkillAssignments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchSkillAssignments = async () => {
+      if (!publicClient) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const assignmentLogs = await publicClient.getLogs({
+          address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+          event: parseAbiItem('event SkillAssigned(address indexed user, string skillId, uint256 timestamp)'),
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        }).catch(err => {
+          console.log('No SkillAssigned events found:', err.message);
+          return [];
+        });
+
+        const processedAssignments = assignmentLogs.map(log => ({
+          user: log.args.user,
+          skillId: log.args.skillId,
+          timestamp: Number(log.args.timestamp)
+        }));
+
+        setSkillAssignments(processedAssignments);
+      } catch (err) {
+        console.error('Error fetching skill assignments:', err);
+        setError(err as Error);
+        setSkillAssignments([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSkillAssignments();
+  }, [publicClient]);
+
+  return {
+    data: skillAssignments,
+    isLoading,
+    error
+  };
+}

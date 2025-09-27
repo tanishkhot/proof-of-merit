@@ -1,6 +1,7 @@
 'use client';
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useState, useEffect } from 'react';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { parseEther } from 'viem';
 import { SKILL_VERIFICATION_ABI, SKILL_VERIFICATION_ADDRESS, SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
@@ -149,15 +150,65 @@ export function useHasUserSkill(userAddress: `0x${string}` | undefined, skillId:
 
 // Custom hook to get all user skills by checking each available skill
 export function useUserSkills(userAddress: `0x${string}` | undefined) {
-  const { data: availableSkills } = useAvailableSkills();
-  
-  // For now, return empty array since we can't efficiently get all user skills
-  // In a real implementation, you'd need to check each skill individually
-  // or modify the contract to have a getUserSkills function
+  const { data: availableSkills, isLoading: skillsLoading } = useAvailableSkills();
+  const [userSkills, setUserSkills] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const publicClient = usePublicClient();
+
+  useEffect(() => {
+    const checkUserSkills = async () => {
+      if (!userAddress || !availableSkills || availableSkills.length === 0 || !publicClient) {
+        setUserSkills([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Check each available skill to see if the user has it
+        const skillChecks = availableSkills.map(async (skill: string) => {
+          try {
+            const result = await publicClient.readContract({
+              address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+              abi: SKILL_VERIFICATION_ABI,
+              functionName: 'hasUserSkill',
+              args: [userAddress, skill],
+            });
+            return result ? skill : null;
+          } catch (err) {
+            console.error(`Error checking skill ${skill}:`, err);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(skillChecks);
+        const verifiedSkills = results.filter((skill): skill is string => skill !== null);
+        
+        setUserSkills(verifiedSkills);
+      } catch (err) {
+        console.error('Error checking user skills:', err);
+        setError(err as Error);
+        setUserSkills([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkUserSkills();
+    
+    // Refresh user skills every 30 seconds to catch new assignments
+    const interval = setInterval(checkUserSkills, 30000);
+    
+    return () => clearInterval(interval);
+  }, [userAddress, availableSkills, publicClient]);
+
   return {
-    data: [] as string[],
-    isLoading: false,
-    error: null,
+    data: userSkills,
+    isLoading: isLoading || skillsLoading,
+    error,
   };
 }
 

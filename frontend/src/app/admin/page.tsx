@@ -104,6 +104,8 @@ const AdminPage = () => {
       await directlyAssignSkill(directUser, directSkill);
       setDirectUser('');
       setDirectSkill('');
+      // Show success message
+      alert(`Skill "${directSkill}" has been directly assigned to ${directUser}`);
     } catch (err) {
       console.error('Error directly assigning skill:', err);
     }
