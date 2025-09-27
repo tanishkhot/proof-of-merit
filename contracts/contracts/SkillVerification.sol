@@ -251,3 +251,58 @@ contract SkillVerification {
 
         emit ProblemSolved(_claimId, _solution);
     }
+        /**
+     * @dev Check if a claim should be auto-rejected due to time expiry
+     * @param _claimId The claim ID to check
+     */
+    function checkTimeExpiry(uint256 _claimId) public {
+        require(_claimId > 0 && _claimId <= nextClaimId, "Invalid claim ID");
+        
+        SkillClaim storage claim = claims[_claimId];
+        
+        // If problem solving time expired and no solution submitted
+        if (block.timestamp > claim.problemDeadline && !claim.problemSolved && claim.status == Status.PENDING) {
+            claim.status = Status.REJECTED;
+            
+            // Return stake to claimant
+            (bool success, ) = claim.user.call{value: claim.stakeAmount}("");
+            require(success, "Stake return failed");
+        }
+        
+        // If challenge window expired and no challenge was made
+        if (block.timestamp > claim.challengeDeadline && claim.status == Status.PENDING && claim.problemSolved) {
+            claim.status = Status.VERIFIED;
+            _addVerifiedSkill(claim.user, claim.skillId);
+            emit SkillVerified(claim.user, claim.skillId);
+        }
+    }
+
+    /**
+     * @dev Another user calls this to challenge an existing claim
+     * @param _claimId The ID of the claim to challenge
+     * @param _reason The reason for the challenge
+     */
+    function challengeClaim(uint256 _claimId, string memory _reason) public payable onlyVerifiedUser(claims[_claimId].skillId) {
+        require(_claimId > 0 && _claimId <= nextClaimId, "Invalid claim ID");
+        require(claims[_claimId].status == Status.PENDING, "Claim is not pending");
+        require(claims[_claimId].user != msg.sender, "Cannot challenge your own claim");
+        require(msg.value == PREDEFINED_STAKE_AMOUNT, "Challenge stake must be exactly 0.01 ETH");
+        require(bytes(_reason).length > 0, "Reason cannot be empty");
+        require(claims[_claimId].problemSolved, "Claimant must solve the problem first");
+        require(block.timestamp <= claims[_claimId].challengeDeadline, "Challenge window has expired");
+
+        nextChallengeId++;
+        
+        challenges[nextChallengeId] = Challenge({
+            challenger: msg.sender,
+            stakeAmount: msg.value,
+            reason: _reason,
+            claimId: _claimId,
+            challengeTimestamp: block.timestamp
+        });
+
+        // Update claim status to challenged
+        claims[_claimId].status = Status.CHALLENGED;
+
+        emit ClaimChallenged(msg.sender, _claimId, _reason, msg.value);
+    }
