@@ -4,6 +4,7 @@ import "./globals.css";
 import { Web3Provider } from "@/lib/web3-provider";
 import { Navigation } from "@/components/navigation";
 import { DebugInfo } from "@/components/debug-info";
+import { TransactionDebugger } from "@/components/transaction-debugger";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
             {children}
           </main>
           <DebugInfo />
+          <TransactionDebugger />
         </Web3Provider>
       </body>
     </html>

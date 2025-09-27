@@ -41,8 +41,8 @@ export const SKILL_VERIFICATION_ABI = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getAllSkillClaims",
+    "inputs": [{"internalType": "uint256", "name": "_claimId", "type": "uint256"}],
+    "name": "getClaim",
     "outputs": [
       {
         "components": [
@@ -57,17 +57,17 @@ export const SKILL_VERIFICATION_ABI = [
           {"internalType": "string", "name": "problemStatement", "type": "string"},
           {"internalType": "string", "name": "solution", "type": "string"}
         ],
-        "internalType": "struct SkillVerification.SkillClaim[]",
+        "internalType": "struct SkillVerification.SkillClaim",
         "name": "",
-        "type": "tuple[]"
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getAllChallenges",
+    "inputs": [{"internalType": "uint256", "name": "_claimId", "type": "uint256"}],
+    "name": "getChallengeForClaim",
     "outputs": [
       {
         "components": [
@@ -77,9 +77,9 @@ export const SKILL_VERIFICATION_ABI = [
           {"internalType": "uint256", "name": "claimId", "type": "uint256"},
           {"internalType": "uint256", "name": "challengeTimestamp", "type": "uint256"}
         ],
-        "internalType": "struct SkillVerification.Challenge[]",
+        "internalType": "struct SkillVerification.Challenge",
         "name": "",
-        "type": "tuple[]"
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",

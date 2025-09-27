@@ -17,6 +17,8 @@ export function Navigation() {
     { href: '/challenges', label: 'Challenges' },
     { href: '/resolve', label: 'Resolve' },
     { href: '/profile', label: 'Profile' },
+    { href: '/admin', label: 'Admin' },
+    { href: '/test', label: 'Test' },
     { href: '/recruit', label: 'Recruit' },
     { href: '/admin', label: 'Owner' },
   ];

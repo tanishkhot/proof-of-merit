@@ -4,16 +4,26 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 
 import { parseEther } from 'viem';
 import { SKILL_VERIFICATION_ABI, SKILL_VERIFICATION_ADDRESS, SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
-export function useSkillClaims() {
+export function useSkillClaim(claimId: number) {
   return useReadContract({
     address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
     abi: SKILL_VERIFICATION_ABI,
-    functionName: 'getAllSkillClaims',
+    functionName: 'getClaim',
+    args: [BigInt(claimId)],
     query: {
       retry: 1,
       refetchInterval: 10000, // Refetch every 10 seconds
     },
   });
+}
+
+// For now, we'll return empty array since we can't get all claims efficiently
+export function useSkillClaims() {
+  return {
+    data: [] as any[],
+    isLoading: false,
+    error: null,
+  };
 }
 
 export function useStakeAmount() {
@@ -110,12 +120,22 @@ export function useVoteOnChallenge() {
   };
 }
 
-export function useAllChallenges() {
+export function useChallengeForClaim(claimId: number) {
   return useReadContract({
     address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
     abi: SKILL_VERIFICATION_ABI,
-    functionName: 'getAllChallenges',
+    functionName: 'getChallengeForClaim',
+    args: [BigInt(claimId)],
   });
+}
+
+// For now, we'll return empty array since we can't get all challenges efficiently
+export function useAllChallenges() {
+  return {
+    data: [] as any[],
+    isLoading: false,
+    error: null,
+  };
 }
 
 export function useHasUserSkill(userAddress: `0x${string}` | undefined, skillId: string) {
