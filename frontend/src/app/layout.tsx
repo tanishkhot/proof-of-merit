@@ -4,11 +4,8 @@ import "./globals.css";
 import { Web3Provider } from "@/lib/web3-provider";
 import { Navigation } from "@/components/navigation";
 import { DebugInfo } from "@/components/debug-info";
-<<<<<<< HEAD
 import { TransactionDebugger } from "@/components/transaction-debugger";
-=======
 import { Footer } from "@/components/footer";
->>>>>>> 32f1026 (refactor: improving the UI)
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,14 +33,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Web3Provider>
-<<<<<<< HEAD
-          <Navigation />
-          <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {children}
-          </main>
-          <DebugInfo />
-          <TransactionDebugger />
-=======
           <div className="flex flex-col min-h-screen">
             <Navigation />
             <main className="flex-grow bg-white pb-16">
@@ -52,7 +41,6 @@ export default function RootLayout({
             <Footer />
             <DebugInfo />
           </div>
->>>>>>> 32f1026 (refactor: improving the UI)
         </Web3Provider>
       </body>
     </html>

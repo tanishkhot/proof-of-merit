@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { WalletConnect } from './wallet-connect';
@@ -12,7 +13,6 @@ export function Navigation() {
   const isActive = (path: string) => pathname === path;
 
   const navItems = [
-    // { href: '/', label: 'Home' },
     { href: '/attest', label: 'Claim Skills' },
     { href: '/claims', label: 'View Claims' },
     { href: '/recruit', label: 'Recruit' },
@@ -20,7 +20,6 @@ export function Navigation() {
     { href: '/challenges', label: 'Challenges' },
     { href: '/resolve', label: 'Resolve' },
     { href: '/profile', label: 'Profile' },
-    { href: '/admin', label: 'Admin' },
     { href: '/test', label: 'Test' },
     { href: '/test-contract', label: 'Test Contract' },
   ];
@@ -29,12 +28,10 @@ export function Navigation() {
     <nav className="bg-white shadow-md border-b border-gray-100 font-sans ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          {/* Logo */}
+          
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-lg">C</span>
-              </div>
+              <Image src="/logo.png" alt="Crucible Logo" width={40} height={40} className="rounded-lg shadow-md" />
               <span className="text-2xl font-light text-gray-800 pr-10">Crucible </span>
             </Link>
           </div>
@@ -42,17 +39,18 @@ export function Navigation() {
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-3 py-2 rounded-md text-base font-normal transition-colors ${
-                  isActive(item.href)
-                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500'
-                    : 'text-gray-600 hover:text-purple-600'
-                }`}
-              >
-                {item.label}
-              </Link>
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`px-3 py-2 rounded-md text-base font-normal transition-colors ${
+                    isActive(item.href)
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500'
+                      : 'text-gray-600 hover:text-purple-600'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </div>
             ))}
           </div>
 
