@@ -33,7 +33,7 @@ export function Navigation() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-lg">P</span>
+                <span className="text-white font-bold text-lg">C</span>
               </div>
               <span className="text-2xl font-light text-gray-800 pr-10">Crucible </span>
             </Link>

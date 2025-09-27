@@ -44,11 +44,11 @@ const ProfilePage = () => {
 
       if (!isConnected) {
         return (
-          <div className="min-h-screen p-8">
+          <div className="min-h-screen bg-white text-gray-800 p-8 font-sans flex flex-col justify-center items-center">
             <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Connect Your Wallet</h1>
-              <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-                Please connect your wallet to view your profile
+              <h1 className="text-4xl font-light mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Connect Your Wallet</h1>
+              <p className="text-xl text-gray-600 font-light mb-8">
+                Please connect your wallet to view your profile.
               </p>
             </div>
           </div>
@@ -56,30 +56,31 @@ const ProfilePage = () => {
       }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen bg-white text-gray-800 p-8 font-sans">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">My Profile</h1>
+        <div className="mb-10 text-center">
+          <h1 className="text-5xl font-light text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">My Profile</h1>
         </div>
 
         {/* User Info */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+          <div className="flex items-center space-x-6">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center shadow-md">
+              <span className="text-3xl font-light text-white">
                 {address?.slice(2, 4).toUpperCase()}
               </span>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+              <h2 className="text-2xl font-normal text-gray-800">
                 {`${address?.slice(0, 6)}...${address?.slice(-4)}`}
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">Blockchain Developer</p>
+              <p className="text-gray-500">Blockchain Developer</p>
             </div>
           </div>
         </div>
 
         {/* Verified Skills */}
+<<<<<<< HEAD
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
           <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Verified Skills</h3>
           {skillsLoading ? (
@@ -95,6 +96,14 @@ const ProfilePage = () => {
           ) : (
             <p className="text-gray-600 dark:text-gray-400">No skills verified yet.</p>
           )}
+=======
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+          <h3 className="text-2xl font-light text-gray-800 mb-4">Verified Skills</h3>
+          <p className="text-gray-600">
+            Skill verification status will be shown here once the contract has skills available for claiming.
+            Currently, the contract needs to have skills added by the owner before users can claim them.
+          </p>
+>>>>>>> 32f1026 (refactor: improving the UI)
         </div>
 
         {/* Directly Assigned Skills */}
@@ -122,18 +131,18 @@ const ProfilePage = () => {
         )}
 
         {/* Skill Claims History */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Skill Claims History</h3>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <h3 className="text-2xl font-light text-gray-800 mb-4">Skill Claims History</h3>
           {claimsLoading ? (
-            <p className="text-gray-600 dark:text-gray-400">Loading claims...</p>
+            <p className="text-gray-500">Loading claims...</p>
           ) : userClaims.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {userClaims.map((claim: any, index: number) => (
-                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
+                <div key={index} className="border border-gray-100 rounded-xl p-6">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h4 className="font-semibold text-gray-800 dark:text-gray-200">{claim.skillId}</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <h4 className="font-semibold text-lg text-gray-800">{claim.skillId}</h4>
+                      <p className="text-sm text-gray-500">
                         Claimed on: {new Date(Number(claim.claimTimestamp) * 1000).toLocaleDateString()}
                       </p>
                     </div>
@@ -142,29 +151,29 @@ const ProfilePage = () => {
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 text-sm mt-3">
+                  <div className="grid grid-cols-2 gap-4 text-base mt-4">
                     <div>
-                      <span className="font-medium">Stake:</span> {Number(claim.stakeAmount) / 1e18} ETH
+                      <span className="font-medium text-gray-600">Stake:</span> {Number(claim.stakeAmount) / 1e18} ETH
                     </div>
                     <div>
-                      <span className="font-medium">Problem Solved:</span> {claim.problemSolved ? 'Yes' : 'No'}
+                      <span className="font-medium text-gray-600">Problem Solved:</span> {claim.problemSolved ? 'Yes' : 'No'}
                     </div>
                     <div>
-                      <span className="font-medium">Problem Deadline:</span> {new Date(Number(claim.problemDeadline) * 1000).toLocaleDateString()}
+                      <span className="font-medium text-gray-600">Problem Deadline:</span> {new Date(Number(claim.problemDeadline) * 1000).toLocaleDateString()}
                     </div>
                     <div>
-                      <span className="font-medium">Challenge Deadline:</span> {new Date(Number(claim.challengeDeadline) * 1000).toLocaleDateString()}
+                      <span className="font-medium text-gray-600">Challenge Deadline:</span> {new Date(Number(claim.challengeDeadline) * 1000).toLocaleDateString()}
                     </div>
                   </div>
 
                   {claim.solution && (
-                    <div className="mt-3">
-                      <span className="font-medium text-sm">Solution:</span>
+                    <div className="mt-4">
+                      <span className="font-medium text-gray-600">Solution:</span>
                       <a 
                         href={claim.solution} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="ml-2 text-blue-500 hover:underline text-sm"
+                        className="ml-2 text-blue-500 hover:underline"
                       >
                         View Solution
                       </a>
@@ -172,9 +181,9 @@ const ProfilePage = () => {
                   )}
 
                   {claim.problemStatement && (
-                    <div className="mt-3">
-                      <span className="font-medium text-sm">Problem Statement:</span>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <div className="mt-4">
+                      <span className="font-medium text-gray-600">Problem Statement:</span>
+                      <p className="text-base text-gray-700 mt-1">
                         {claim.problemStatement}
                       </p>
                     </div>
@@ -183,7 +192,7 @@ const ProfilePage = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-600 dark:text-gray-400">No skill claims yet</p>
+            <p className="text-gray-500">No skill claims yet</p>
           )}
         </div>
       </div>
