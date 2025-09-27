@@ -17,6 +17,14 @@ const people = [
   { name: 'Peter Jones', github: 'https://github.com/peterjones', score: 92, upward_trend: 12, downward_trend: 1 },
 ];
 
+const levelDescriptions: { [key: number]: string } = {
+  1: "Intern",
+  2: "Junior",
+  3: "Mid-level",
+  4: "Senior",
+  5: "Expert",
+};
+
 export default function RecruitPage() {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -80,33 +88,41 @@ export default function RecruitPage() {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-900 text-white p-8">
-      <div className="w-full max-w-2xl">
-        <h1 className="text-4xl font-bold text-center mb-8">Who would you like to hire today?</h1>
-        <form onSubmit={handleSearch} className="flex">
+    <div className="flex flex-col items-center min-h-screen bg-white text-gray-800 p-8 font-sans">
+      <div className="w-full max-w-3xl mx-auto">
+        <h1 className="text-5xl font-light text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">
+          Who would you like to hire today?
+        </h1>
+        <form onSubmit={handleSearch} className="flex shadow-lg rounded-2xl">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full p-4 text-lg bg-gray-800 text-white rounded-l-lg focus:outline-none placeholder:text-gray-400"
+            className="w-full p-5 text-lg bg-gray-50 text-gray-800 rounded-l-2xl focus:outline-none placeholder:text-gray-400"
             placeholder="e.g., 'Expert React developer with some knowledge of Go'"
             disabled={isLoading}
           />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-r-lg" disabled={isLoading}>
+          <button
+            type="submit"
+            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-normal py-4 px-10 rounded-r-2xl shadow-md transition-all duration-300"
+            disabled={isLoading}
+          >
             {isLoading ? 'Parsing...' : 'Send'}
           </button>
         </form>
       </div>
 
       {skills.length > 0 && !showResults && (
-        <div className="w-full max-w-2xl mt-10">
-          <h2 className="text-2xl font-semibold text-center mb-6">Adjust Skill Requirements</h2>
-          <div className="space-y-6 bg-gray-800 p-6 rounded-lg">
+        <div className="w-full max-w-3xl mt-12">
+          <h2 className="text-3xl font-light text-center mb-8">Adjust Skill Requirements</h2>
+          <div className="space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
             {requirements.map(({ skill, level }) => (
               <div key={skill}>
-                <label htmlFor={skill} className="text-lg font-medium mb-2 flex justify-between">
+                <label htmlFor={skill} className="text-xl font-normal mb-3 flex justify-between items-center text-gray-700">
                   <span>{skill}</span>
-                  <span className="text-blue-400 font-bold">{level}</span>
+                  <span className="text-lg font-normal text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">
+                    Level {level} - {levelDescriptions[level]}
+                  </span>
                 </label>
                 <input
                   id={skill}
@@ -115,13 +131,16 @@ export default function RecruitPage() {
                   max="5"
                   value={level}
                   onChange={(e) => handleSliderChange(skill, parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-3 bg-gray-200 rounded-full appearance-none cursor-pointer accent-purple-500"
                 />
               </div>
             ))}
           </div>
-          <div className="text-center mt-6">
-            <button onClick={handleFindCandidates} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-10 rounded-lg text-lg">
+          <div className="text-center mt-8">
+            <button
+              onClick={handleFindCandidates}
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-normal py-4 px-12 rounded-2xl text-xl shadow-lg transition-all duration-300"
+            >
               Find Candidates
             </button>
           </div>
@@ -129,28 +148,28 @@ export default function RecruitPage() {
       )}
 
       {showResults && (
-         <div className="w-full max-w-4xl mt-10">
-          <h2 className="text-3xl font-bold text-center mb-8">Hiring Results</h2>
-          <div className="space-y-4">
+         <div className="w-full max-w-4xl mt-12">
+          <h2 className="text-4xl font-light text-center mb-10">Hiring Results</h2>
+          <div className="space-y-6">
             {people.map((person, index) => (
-              <div key={index} className="bg-gray-800 p-4 rounded-lg flex items-center justify-between">
+              <div key={index} className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-between transition-all hover:shadow-xl">
                 <div className="flex items-center">
-                  <span className="text-2xl font-bold mr-4">{person.score}</span>
+                  <span className="text-4xl font-light mr-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">{person.score}</span>
                   <div>
-                    <p className="text-xl font-semibold">{person.name}</p>
-                    <a href={person.github} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                    <p className="text-2xl font-normal text-gray-800">{person.name}</p>
+                    <a href={person.github} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                       {person.github}
                     </a>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-6">
                   <div className="flex items-center text-green-500">
-                    <span className="text-2xl">▲</span>
-                    <span className="ml-1">{person.upward_trend}</span>
+                    <span className="text-3xl">▲</span>
+                    <span className="ml-2 text-lg font-normal">{person.upward_trend}</span>
                   </div>
                   <div className="flex items-center text-red-500">
-                    <span className="text-2xl">▼</span>
-                    <span className="ml-1">{person.downward_trend}</span>
+                    <span className="text-3xl">▼</span>
+                    <span className="ml-2 text-lg font-normal">{person.downward_trend}</span>
                   </div>
                 </div>
               </div>
@@ -161,9 +180,9 @@ export default function RecruitPage() {
 
       {/* For debugging: display the requirements array */}
       {requirements.length > 0 && !showResults && (
-        <div className="w-full max-w-2xl mt-8 bg-gray-900 p-4 rounded">
-          <h3 className="text-lg font-semibold">Current Requirements Array:</h3>
-          <pre className="text-sm bg-black text-white p-4 rounded mt-2 overflow-x-auto">
+        <div className="w-full max-w-3xl mt-10 bg-gray-50 p-6 rounded-2xl border border-gray-200">
+          <h3 className="text-lg font-normal text-gray-600">Current Requirements Array:</h3>
+          <pre className="text-sm bg-gray-100 text-gray-800 p-4 rounded-lg mt-2 overflow-x-auto">
             {JSON.stringify(requirements, null, 2)}
           </pre>
         </div>

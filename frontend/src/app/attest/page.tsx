@@ -77,11 +77,11 @@ const AttestPage = () => {
 
       if (!isConnected) {
         return (
-          <div className="min-h-screen p-8">
+          <div className="min-h-screen bg-white text-gray-800 p-8 font-sans flex flex-col justify-center items-center">
             <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Connect Your Wallet</h1>
-              <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-                Please connect your wallet to claim skill attestations
+              <h1 className="text-4xl font-light mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Connect Your Wallet</h1>
+              <p className="text-xl text-gray-600 font-light mb-8">
+                Please connect your wallet to claim skill attestations.
               </p>
             </div>
           </div>
@@ -89,29 +89,29 @@ const AttestPage = () => {
       }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen bg-white text-gray-800 p-8 font-sans">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Claim Skill Attestation</h1>
+        <div className="mb-10 text-center">
+          <h1 className="text-5xl font-light text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Claim Skill Attestation</h1>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10">
           {/* Step 1: Select Skill */}
           {currentStep === 'select' && (
             <>
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-6">Select Skill to Claim</h2>
+              <h2 className="text-3xl font-light text-gray-800 mb-6">Select Skill to Claim</h2>
               
               {skillsLoading ? (
-                <p className="text-gray-600 dark:text-gray-400">Loading available skills...</p>
+                <p className="text-gray-600">Loading available skills...</p>
               ) : (
-                <div className="space-y-4">
-                  <label htmlFor="skill-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="space-y-6">
+                  <label htmlFor="skill-select" className="block text-lg font-normal text-gray-700">
                     Choose a skill to claim:
                   </label>
                   <select
                     id="skill-select"
                     value={selectedSkill}
                     onChange={(e) => setSelectedSkill(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-lg"
                   >
                     <option value="">Select a skill...</option>
                     {availableSkills?.map((skill: string) => (
@@ -120,19 +120,19 @@ const AttestPage = () => {
                   </select>
                   
                   {selectedSkill && problemStatement && (
-                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <h3 className="font-semibold text-blue-800 dark:text-blue-200">Problem Statement:</h3>
-                      <p className="text-blue-700 dark:text-blue-300 mt-2">{problemStatement}</p>
+                    <div className="mt-4 p-5 bg-purple-50 rounded-xl">
+                      <h3 className="font-semibold text-purple-800">Problem Statement:</h3>
+                      <p className="text-purple-700 mt-2">{problemStatement}</p>
                     </div>
                   )}
                   
-                  <div className="flex justify-end mt-6">
+                  <div className="flex justify-end mt-8">
                     <button 
                       onClick={handleStakeClaim}
-                      className={`text-white font-bold py-2 px-4 rounded ${
+                      className={`text-white font-normal py-3 px-8 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 ${
                         !selectedSkill || isStakePending || isStakeConfirming
                           ? 'bg-gray-400 cursor-not-allowed' 
-                          : 'bg-green-500 hover:bg-green-700'
+                          : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
                       }`}
                       disabled={!selectedSkill || isStakePending || isStakeConfirming}
                     >
@@ -148,21 +148,21 @@ const AttestPage = () => {
           {currentStep === 'solve' && (
             <>
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Solve the Problem</h2>
-                <div className="text-2xl font-bold text-red-500">
+                <h2 className="text-3xl font-light text-gray-800">Solve the Problem</h2>
+                <div className="text-3xl font-bold text-purple-500">
                   {formatTime(timeLeft)}
                 </div>
               </div>
               
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">Skill: {selectedSkill}</h3>
-                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <p className="text-gray-700 dark:text-gray-300">{problemStatement}</p>
+                <h3 className="text-xl font-normal text-gray-800 mb-2">Skill: {selectedSkill}</h3>
+                <div className="p-5 bg-gray-50 rounded-xl">
+                  <p className="text-gray-700">{problemStatement}</p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="github-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="github-url" className="block text-lg font-normal text-gray-700">
                   Solution (GitHub URL)
                 </label>
                 <input
@@ -170,18 +170,18 @@ const AttestPage = () => {
                   id="github-url"
                   value={solution}
                   onChange={(e) => setSolution(e.target.value)}
-                  className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-lg"
                   placeholder="https://github.com/your-username/your-repo"
                 />
               </div>
 
-              <div className="flex justify-end mt-6">
+              <div className="flex justify-end mt-8">
                 <button 
                   onClick={handleSubmitSolution}
-                  className={`text-white font-bold py-2 px-4 rounded ${
+                  className={`text-white font-normal py-3 px-8 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 ${
                     timeUp || isSolutionPending || isSolutionConfirming
                       ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-500 hover:bg-blue-700'
+                      : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'
                   }`}
                   disabled={timeUp || isSolutionPending || isSolutionConfirming}
                 >
@@ -193,14 +193,14 @@ const AttestPage = () => {
 
           {/* Step 3: Success */}
           {currentStep === 'submit' && (
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold text-green-600 dark:text-green-400 mb-4">Solution Submitted!</h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <div className="text-center py-10">
+              <h2 className="text-3xl font-light text-green-600 mb-4">Solution Submitted!</h2>
+              <p className="text-lg text-gray-600 font-light mb-8">
                 Your solution has been submitted. Now wait for the challenge period to end or for someone to challenge your claim.
               </p>
               <button 
                 onClick={() => setCurrentStep('select')}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-normal py-3 px-8 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105"
               >
                 Claim Another Skill
               </button>
@@ -209,20 +209,20 @@ const AttestPage = () => {
 
           {/* Error Messages */}
           {(stakeError || solutionError) && (
-            <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div className="mt-6 p-4 bg-red-50 border border-red-300 text-red-700 rounded-xl">
               Error: {(stakeError || solutionError)?.message}
             </div>
           )}
 
           {/* Success Messages */}
           {isStakeSuccess && (
-            <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            <div className="mt-6 p-4 bg-green-50 border border-green-300 text-green-700 rounded-xl">
               Claim staked successfully! Transaction hash: {stakeHash}
             </div>
           )}
 
           {isSolutionSuccess && (
-            <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            <div className="mt-6 p-4 bg-green-50 border border-green-300 text-green-700 rounded-xl">
               Solution submitted successfully! Transaction hash: {solutionHash}
             </div>
           )}
