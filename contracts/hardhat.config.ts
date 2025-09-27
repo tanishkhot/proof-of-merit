@@ -26,6 +26,7 @@ const config: HardhatUserConfig = {
       type: "http",
       url: "https://testnet.evm.nodes.onflow.org",
       accounts: [configVariable("FLOW_PRIVATE_KEY")],
+      chainId: 545,
     },
   },
 };
