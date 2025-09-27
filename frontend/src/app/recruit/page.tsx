@@ -104,7 +104,7 @@ export default function RecruitPage() {
           <div className="space-y-6 bg-gray-800 p-6 rounded-lg">
             {requirements.map(({ skill, level }) => (
               <div key={skill}>
-                <label htmlFor={skill} className="block text-lg font-medium mb-2 flex justify-between">
+                <label htmlFor={skill} className="text-lg font-medium mb-2 flex justify-between">
                   <span>{skill}</span>
                   <span className="text-blue-400 font-bold">{level}</span>
                 </label>
