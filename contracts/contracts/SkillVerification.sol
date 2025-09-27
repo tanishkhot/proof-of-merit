@@ -426,4 +426,126 @@ contract SkillVerification {
         emit ChallengeResolved(_claimId, claimantWon, winner, totalDistributed);
         emit StakeDistributed(_claimId, winner, winnerAmount, platformAmount, resolverAmount);
     }
+        /**
+     * @dev Internal function to add a verified skill to the registry
+     * @param _user The user who has the verified skill
+     * @param _skillId The skill that was verified
+     */
+    function _addVerifiedSkill(address _user, string memory _skillId) internal {
+        // Check if user is already in the list for this skill
+        address[] storage skillUsers = verifiedSkills[_skillId];
+        for (uint256 i = 0; i < skillUsers.length; i++) {
+            if (skillUsers[i] == _user) {
+                return; // User already has this skill verified
+            }
+        }
+        
+        // Add user to the skill's verified list
+        skillUsers.push(_user);
+        
+        // Mark skill as verified for the user
+        userSkills[_user][_skillId] = true;
+    }
+
+    /**
+     * @dev Get all available skills
+     * @return Array of skill IDs that are available for claiming
+     */
+    function getAllSkills() public view returns (string[] memory) {
+        return skillList;
+    }
+
+    /**
+     * @dev Check if a skill is available for claiming
+     * @param _skillId The skill to check
+     * @return True if the skill is available
+     */
+    function isSkillAvailable(string memory _skillId) public view returns (bool) {
+        return availableSkills[_skillId];
+    }
+
+    /**
+     * @dev Get the problem statement for a skill
+     * @param _skillId The skill to get problem statement for
+     * @return The problem statement for the skill
+     */
+    function getProblemStatement(string memory _skillId) public view returns (string memory) {
+        require(availableSkills[_skillId], "Skill does not exist");
+        return skillProblemStatements[_skillId];
+    }
+
+    /**
+     * @dev Get all users who have verified a specific skill
+     * @param _skillId The skill to query
+     * @return Array of addresses who have verified this skill
+     */
+    function getVerifiedUsersForSkill(string memory _skillId) public view returns (address[] memory) {
+        return verifiedSkills[_skillId];
+    }
+
+    /**
+     * @dev Check if a user has a specific skill verified
+     * @param _user The user to check
+     * @param _skillId The skill to check
+     * @return True if the user has the skill verified
+     */
+    function hasUserSkill(address _user, string memory _skillId) public view returns (bool) {
+        return userSkills[_user][_skillId];
+    }
+
+    /**
+     * @dev Get claim details
+     * @param _claimId The claim ID to query
+     * @return The claim details
+     */
+    function getClaim(uint256 _claimId) public view returns (SkillClaim memory) {
+        require(_claimId > 0 && _claimId <= nextClaimId, "Invalid claim ID");
+        return claims[_claimId];
+    }
+
+    /**
+     * @dev Get challenge details for a claim
+     * @param _claimId The claim ID to query
+     * @return The challenge details if exists
+     */
+    function getChallengeForClaim(uint256 _claimId) public view returns (Challenge memory) {
+        require(_claimId > 0 && _claimId <= nextClaimId, "Invalid claim ID");
+        
+        for (uint256 i = 1; i <= nextChallengeId; i++) {
+            if (challenges[i].claimId == _claimId) {
+                return challenges[i];
+            }
+        }
+        
+        revert("No challenge found for this claim");
+    }
+
+    /**
+     * @dev Get all votes for a claim
+     * @param _claimId The claim ID to query
+     * @return Array of resolver votes
+     */
+    function getResolverVotes(uint256 _claimId) public view returns (ResolverVote[] memory) {
+        return resolverVotes[_claimId];
+    }
+
+    /**
+     * @dev Get the predefined stake amount
+     * @return The predefined stake amount in wei
+     */
+    function getPredefinedStakeAmount() public pure returns (uint256) {
+        return PREDEFINED_STAKE_AMOUNT;
+    }
+
+    /**
+     * @dev Emergency function to withdraw contract balance (owner only)
+     */
+    function emergencyWithdraw() public onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to withdraw");
+        
+        (bool success, ) = owner.call{value: balance}("");
+        require(success, "Withdrawal failed");
+    }
+
 
