@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 const challenges = [
   {
@@ -49,9 +50,11 @@ const ChallengesPage = () => {
                 <td className="px-4 py-2"><a href={challenge.github_submission_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View on GitHub</a></td>
                 <td className="px-4 py-2">{challenge.time}</td>
                 <td className="px-4 py-2">
-                  <button className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-                    Challenge this submission
-                  </button>
+                  <Link href="/challenges/challenge">
+                    <button className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                      Challenge this submission
+                    </button>
+                  </Link>
                 </td>
               </tr>
             ))}
