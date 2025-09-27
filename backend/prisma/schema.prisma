@@ -1,15 +1,114 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --------------------------------------
+// Enums
+// --------------------------------------
+
+enum Role {
+  DEVELOPER
+  CHALLENGER
+}
+
+enum AttestationStatus {
+  PENDING
+  VERIFIED
+  CHALLENGED
+  REJECTED
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+// --------------------------------------
+// Hedera Mock Models (Transactional Data)
+// --------------------------------------
+
+// Represents a user in the system, who can be a developer or a challenger.
+model User {
+  id                   String        @id @default(cuid())
+  walletAddress        String        @unique
+  githubUsername       String        @unique
+  ensName              String?       @unique
+  role                 Role          @default(DEVELOPER)
+  claimedAttestations  Attestation[] @relation("ClaimantAttestations")
+  challengedAttestations Attestation[] @relation("ChallengerAttestations")
+
+  @@map("users")
+}
+
+// Represents a skill that a developer can claim.
+model Skill {
+  id              String        @id @default(cuid())
+  name            String        @unique
+  problemStatement String
+  level           SkillLevel
+  attestations    Attestation[]
+
+  @@map("skills")
+}
+
+// Represents a developer's claim to a skill, which can be challenged.
+model Attestation {
+  id               String            @id @default(cuid())
+  status           AttestationStatus @default(PENDING)
+  proofOfWorkUrl   String            @map("proof_of_work_url")
+  stakeAmount      Decimal           @map("stake_amount")
+  challengeReason  String?           @map("challenge_reason") // Optional, as it only exists if challenged
+
+  claimantId       String            @map("claimant_id")
+  claimant         User              @relation("ClaimantAttestations", fields: [claimantId], references: [id])
+
+  challengerId     String?           @map("challenger_id")
+  challenger       User?             @relation("ChallengerAttestations", fields: [challengerId], references: [id])
+
+  skillId          String            @map("skill_id")
+  skill            Skill             @relation(fields: [skillId], references: [id])
+
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at") // This will automatically update and can serve as the "resolved_at" timestamp
+
+  @@map("attestations")
+}
+// --------------------------------------
+// Hypergraph Mock Model (Read-Optimized Data)
+// --------------------------------------
+
+// A denormalized, read-optimized table for verified skill proofs.
+// This is the read-optimized "Hypergraph Mock" model.
+// It contains all the denormalized data needed to power the recruiter search UI
+// without requiring any complex database joins.
+model VerifiedSkillProof {
+  id                      String     @id @default(cuid())
+
+  // --- Traceability Fields (Your Suggestions) ---
+  attestationId           String     @unique @map("attestation_id") // The ID from the original Attestation record
+  mockHederaTxHash        String     @unique @map("mock_hedera_tx_hash") // The simulated transaction hash for verifiability
+
+  // --- Developer Identity Fields (Your Suggestions) ---
+  developerWalletAddress  String     @map("developer_wallet_address")
+  developerGithubUsername String?    @map("developer_github_username") // Optional, denormalized from the User model
+  developerEnsName        String?    @map("developer_ens_name")      // Optional, denormalized from the User model
+
+  // --- Core Skill Information ---
+  skillName               String     @map("skill_name")
+  skillLevel              SkillLevel @map("skill_level")
+  proofOfWorkUrl          String     @map("proof_of_work_url")
+
+  // --- Timestamp for Ranking (Your Suggestion) ---
+  verifiedAt              DateTime   @map("verified_at") // The timestamp when the attestation was confirmed
+
+  @@map("verified_skill_proofs")
 }

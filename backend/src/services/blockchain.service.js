@@ -73,7 +73,7 @@ export const challengeAttestation = async (
     data: {
       challengerId,
       status: AttestationStatus.CHALLENGED,
-      // note: A `challengeReason` field could be added to the schema to store the `reason`.
+      // Note: A `challengeReason` field could be added to the schema to store the `reason`.
     },
   });
 
