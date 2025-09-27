@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center p-8">
+    <div className="min-h-screen flex flex-col justify-center items-center p-8">
       <main className="text-center">
         <h1 className="text-5xl font-extrabold text-gray-900 dark:text-gray-100 mb-4">
           Welcome to Crucible

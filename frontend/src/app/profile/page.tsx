@@ -1,69 +1,150 @@
 'use client';
-import React, { useState } from 'react';
-import Link from 'next/link';
+
+import React from 'react';
+import { useAccount } from 'wagmi';
+import { useUserSkills, useSkillClaims } from '@/hooks/useSkillVerification';
+import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
 const ProfilePage = () => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const skills = ['JavaScript', 'React', 'Node.js', 'Solidity', 'Ethers.js'];
+  const { isConnected, address } = useAccount();
+  const { data: userSkills, isLoading: skillsLoading } = useUserSkills(address);
+  const { data: skillClaims, isLoading: claimsLoading } = useSkillClaims();
+
+  const getStatusText = (status: number) => {
+    switch (status) {
+      case SKILL_CLAIM_STATUS.PENDING: return 'Pending';
+      case SKILL_CLAIM_STATUS.CHALLENGED: return 'Challenged';
+      case SKILL_CLAIM_STATUS.VERIFIED: return 'Verified';
+      case SKILL_CLAIM_STATUS.REJECTED: return 'Rejected';
+      default: return 'Unknown';
+    }
+  };
+
+  const getStatusColor = (status: number) => {
+    switch (status) {
+      case SKILL_CLAIM_STATUS.PENDING: return 'text-yellow-600 bg-yellow-100';
+      case SKILL_CLAIM_STATUS.CHALLENGED: return 'text-red-600 bg-red-100';
+      case SKILL_CLAIM_STATUS.VERIFIED: return 'text-green-600 bg-green-100';
+      case SKILL_CLAIM_STATUS.REJECTED: return 'text-gray-600 bg-gray-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  // Filter claims for current user
+  const userClaims = skillClaims?.filter((claim: any) => 
+    claim.user.toLowerCase() === address?.toLowerCase()
+  ) || [];
+
+      if (!isConnected) {
+        return (
+          <div className="min-h-screen p-8">
+            <div className="max-w-4xl mx-auto text-center">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">Connect Your Wallet</h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+                Please connect your wallet to view your profile
+              </p>
+            </div>
+          </div>
+        );
+      }
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen">
-      <div className="relative h-48 bg-gray-300 dark:bg-gray-700">
-        {/* Banner Image */}
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('https://placehold.co/1200x200')" }}></div>
-        <div className="absolute bottom-0 left-8 transform translate-y-1/2">
-          {/* Profile Picture */}
-          <div className="w-32 h-32 rounded-full bg-gray-400 dark:bg-gray-600 border-4 border-white dark:border-gray-800 bg-cover bg-center" style={{ backgroundImage: "url('https://placehold.co/128x128')" }}></div>
+    <div className="min-h-screen p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">My Profile</h1>
         </div>
-      </div>
 
-      <div className="mt-24 px-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">John Doe</h1>
-        <p className="text-md text-gray-600 dark:text-gray-400">@johndoe.eth</p>
-      </div>
-
-      <div className="px-8 py-4 mt-4">
-        <div className="flex space-x-4">
-          <Link href="/profile/skills">
-            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-              Your verified skills
-            </button>
-          </Link>
-
-          <Link href="/challenges">
-            <button className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-              See challenges
-            </button>
-          </Link>
-
-          <Link href="/resolve">
-            <button className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
-              Resolve Conflicts
-            </button>
-          </Link>
-        </div>
-        <div className="mt-4">
-          <button type="button" onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">
-            Claim a skill
-          </button>
-          {isDropdownOpen && (
-            <div className="mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700">
-              <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                {skills.map(skill => (
-                  <Link href="/attest" key={skill} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700" role="menuitem">{skill}</Link>
-                ))}
-              </div>
+        {/* User Info */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center">
+              <span className="text-2xl font-bold text-white">
+                {address?.slice(2, 4).toUpperCase()}
+              </span>
             </div>
-          )}
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                {`${address?.slice(0, 6)}...${address?.slice(-4)}`}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">Blockchain Developer</p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="px-8 py-4 mt-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Skills</h2>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {skills.slice(0, 3).map(skill => (
-            <span key={skill} className="inline-block bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 dark:text-gray-200">{skill}</span>
-          ))}
+        {/* Verified Skills */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Verified Skills</h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Skill verification status will be shown here once the contract has skills available for claiming.
+            Currently, the contract needs to have skills added by the owner before users can claim them.
+          </p>
+        </div>
+
+        {/* Skill Claims History */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Skill Claims History</h3>
+          {claimsLoading ? (
+            <p className="text-gray-600 dark:text-gray-400">Loading claims...</p>
+          ) : userClaims.length > 0 ? (
+            <div className="space-y-4">
+              {userClaims.map((claim: any, index: number) => (
+                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-semibold text-gray-800 dark:text-gray-200">{claim.skillId}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Claimed on: {new Date(Number(claim.claimTimestamp) * 1000).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(claim.status)}`}>
+                      {getStatusText(claim.status)}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm mt-3">
+                    <div>
+                      <span className="font-medium">Stake:</span> {Number(claim.stakeAmount) / 1e18} ETH
+                    </div>
+                    <div>
+                      <span className="font-medium">Problem Solved:</span> {claim.problemSolved ? 'Yes' : 'No'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Problem Deadline:</span> {new Date(Number(claim.problemDeadline) * 1000).toLocaleDateString()}
+                    </div>
+                    <div>
+                      <span className="font-medium">Challenge Deadline:</span> {new Date(Number(claim.challengeDeadline) * 1000).toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  {claim.solution && (
+                    <div className="mt-3">
+                      <span className="font-medium text-sm">Solution:</span>
+                      <a 
+                        href={claim.solution} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="ml-2 text-blue-500 hover:underline text-sm"
+                      >
+                        View Solution
+                      </a>
+                    </div>
+                  )}
+
+                  {claim.problemStatement && (
+                    <div className="mt-3">
+                      <span className="font-medium text-sm">Problem Statement:</span>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {claim.problemStatement}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400">No skill claims yet</p>
+          )}
         </div>
       </div>
     </div>
