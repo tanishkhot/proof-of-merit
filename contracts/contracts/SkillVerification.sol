@@ -202,3 +202,52 @@ contract SkillVerification {
             }
         }
     }
+        /**
+     * @dev A user calls this to make a new skill claim
+     * @param _skillId The skill being claimed (e.g., "React", "Solidity")
+     */
+    function stakeClaim(string memory _skillId) public payable {
+        require(msg.value == PREDEFINED_STAKE_AMOUNT, "Stake amount must be exactly 0.01 ETH");
+        require(bytes(_skillId).length > 0, "Skill ID cannot be empty");
+        require(availableSkills[_skillId], "Skill is not available for claiming");
+        require(!userSkills[msg.sender][_skillId], "You already have this skill verified");
+
+        string memory problemStatement = skillProblemStatements[_skillId];
+        require(bytes(problemStatement).length > 0, "Problem statement not set for this skill");
+
+        nextClaimId++;
+        
+        claims[nextClaimId] = SkillClaim({
+            user: msg.sender,
+            skillId: _skillId,
+            stakeAmount: msg.value,
+            status: Status.PENDING,
+            claimTimestamp: block.timestamp,
+            problemDeadline: block.timestamp + PROBLEM_SOLVING_TIME,
+            challengeDeadline: block.timestamp + PROBLEM_SOLVING_TIME + CHALLENGE_WINDOW,
+            problemSolved: false,
+            problemStatement: problemStatement,
+            solution: ""
+        });
+
+        emit ClaimStaked(msg.sender, nextClaimId, _skillId, msg.value, problemStatement);
+    }
+
+    /**
+     * @dev Claimant submits their solution to the problem
+     * @param _claimId The ID of the claim
+     * @param _solution The solution to the problem
+     */
+    function submitSolution(uint256 _claimId, string memory _solution) public {
+        require(_claimId > 0 && _claimId <= nextClaimId, "Invalid claim ID");
+        require(claims[_claimId].user == msg.sender, "Only the claimant can submit solution");
+        require(claims[_claimId].status == Status.PENDING, "Claim is not in pending state");
+        require(block.timestamp <= claims[_claimId].problemDeadline, "Problem solving time has expired");
+        require(!claims[_claimId].problemSolved, "Solution already submitted");
+        require(bytes(_solution).length > 0, "Solution cannot be empty");
+
+        claims[_claimId].problemSolved = true;
+        claims[_claimId].solution = _solution;
+
+        emit ProblemSolved(_claimId, _solution);
+    }
