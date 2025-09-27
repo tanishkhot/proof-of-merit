@@ -35,6 +35,12 @@ const ProfilePage = () => {
               See challenges
             </button>
           </Link>
+
+          <Link href="/resolve">
+            <button className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+              Resolve Conflicts
+            </button>
+          </Link>
         </div>
         <div className="mt-4">
           <button type="button" onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">
@@ -44,7 +50,7 @@ const ProfilePage = () => {
             <div className="mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700">
               <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                 {skills.map(skill => (
-                  <a href="#" key={skill} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700" role="menuitem">{skill}</a>
+                  <Link href="/attest" key={skill} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700" role="menuitem">{skill}</Link>
                 ))}
               </div>
             </div>

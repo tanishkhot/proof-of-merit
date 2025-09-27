@@ -17,7 +17,42 @@ export const parseSkills = async (input) => {
         2.  **Object Structure:** Each object must contain exactly two keys: a "skill" (string) and a "level" (integer).
         3.  **Proficiency Scale:** The "level" must be an integer between 1 (beginner) and 5 (expert).
         4.  **No Extra Text:** Your entire response must be ONLY the raw JSON array. Do not include any explanations, introductory sentences, or markdown code fences like \`\`\`json.
+        5.  **No Duplicates:** Each skill should appear only once in the array. If a skill is mentioned multiple times with different levels, use the highest level mentioned.
 
+        Every skill should fall into either of theese buckets, look for typos and variations:
+                  "JavaScript",
+            "TypeScript",
+            "Solidity",
+            "Python",
+            "Go",
+            "Rust",
+            "Vyper",
+
+            // Frontend & Backend
+            "React/Next.js",
+            "Node.js/Express",
+            "Databases (SQL/NoSQL)",
+            "API Design (REST/GraphQL)",
+            "Vue.js",
+            "Angular",
+
+            // Core Web3 Concepts
+            "Blockchain Fundamentals",
+            "ERC Standards",
+            "Gas Optimization",
+            "Contract Security",
+            "Layer 2s",
+            "Account Abstraction",
+            "ZK-Proofs",
+            "Cross-Chain Protocols",
+
+            // Web3 Tooling & Integration
+            "Hardhat/Foundry",
+            "Ethers.js/Viem",
+            "Wallet Integration",
+            "Decentralized Storage",
+            "Data Indexing (The Graph)",
+            "Oracles (Chainlink/Pyth)"
         **Example:**
 
         User's Text:
