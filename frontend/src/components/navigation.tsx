@@ -14,6 +14,7 @@ export function Navigation() {
   const navItems = [
     // { href: '/', label: 'Home' },
     { href: '/attest', label: 'Claim Skills' },
+    { href: '/claims', label: 'View Claims' },
     { href: '/challenges', label: 'Challenges' },
     { href: '/resolve', label: 'Resolve' },
     { href: '/profile', label: 'Profile' },
