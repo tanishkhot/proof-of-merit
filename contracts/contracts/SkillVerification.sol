@@ -89,3 +89,116 @@ contract SkillVerification {
         _;
     }
 }
+
+    /**
+     * @dev Set the resolver address (owner only)
+     * @param _newResolver The new resolver address
+     */
+    function setResolver(address _newResolver) public onlyOwner {
+        require(_newResolver != address(0), "Resolver cannot be zero address");
+        address oldResolver = resolver;
+        resolver = _newResolver;
+        emit ResolverUpdated(oldResolver, _newResolver);
+    }
+
+    /**
+     * @dev Add a new skill with its problem statement (owner only)
+     * @param _skillId The skill to add (e.g., "React", "Next.js")
+     * @param _problemStatement The problem statement for this skill
+     */
+    function addSkill(string memory _skillId, string memory _problemStatement) public onlyOwner {
+        require(bytes(_skillId).length > 0, "Skill ID cannot be empty");
+        require(bytes(_problemStatement).length > 0, "Problem statement cannot be empty");
+        require(!availableSkills[_skillId], "Skill already exists");
+
+        availableSkills[_skillId] = true;
+        skillProblemStatements[_skillId] = _problemStatement;
+        skillList.push(_skillId);
+
+        emit SkillAdded(_skillId, _problemStatement);
+    }
+
+    /**
+     * @dev Remove a skill from the available list (owner only)
+     * @param _skillId The skill to remove
+     */
+    function removeSkill(string memory _skillId) public onlyOwner {
+        require(availableSkills[_skillId], "Skill does not exist");
+
+        availableSkills[_skillId] = false;
+        delete skillProblemStatements[_skillId];
+
+        // Remove from skillList array
+        for (uint256 i = 0; i < skillList.length; i++) {
+            if (keccak256(bytes(skillList[i])) == keccak256(bytes(_skillId))) {
+                skillList[i] = skillList[skillList.length - 1];
+                skillList.pop();
+                break;
+            }
+        }
+
+        emit SkillRemoved(_skillId);
+    }
+
+    /**
+     * @dev Update problem statement for an existing skill (owner only)
+     * @param _skillId The skill to update
+     * @param _newProblemStatement The new problem statement
+     */
+    function updateProblemStatement(string memory _skillId, string memory _newProblemStatement) public onlyOwner {
+        require(availableSkills[_skillId], "Skill does not exist");
+        require(bytes(_newProblemStatement).length > 0, "Problem statement cannot be empty");
+        
+        skillProblemStatements[_skillId] = _newProblemStatement;
+    }
+
+    /**
+     * @dev Add multiple skills at once (owner only)
+     * @param _skillIds Array of skills to add
+     * @param _problemStatements Array of problem statements for each skill
+     */
+    function addMultipleSkills(string[] memory _skillIds, string[] memory _problemStatements) public onlyOwner {
+        require(_skillIds.length == _problemStatements.length, "Arrays must have same length");
+        
+        for (uint256 i = 0; i < _skillIds.length; i++) {
+            if (bytes(_skillIds[i]).length > 0 && bytes(_problemStatements[i]).length > 0 && !availableSkills[_skillIds[i]]) {
+                availableSkills[_skillIds[i]] = true;
+                skillProblemStatements[_skillIds[i]] = _problemStatements[i];
+                skillList.push(_skillIds[i]);
+                emit SkillAdded(_skillIds[i], _problemStatements[i]);
+            }
+        }
+    }
+
+    /**
+     * @dev Directly assign a skill to a user instantly (owner only)
+     * @param _user The user to assign the skill to
+     * @param _skillId The skill to assign
+     */
+    function directlyAssignSkill(address _user, string memory _skillId) public onlyOwner {
+        require(_user != address(0), "User address cannot be zero");
+        require(bytes(_skillId).length > 0, "Skill ID cannot be empty");
+        require(availableSkills[_skillId], "Skill does not exist");
+        require(!userSkills[_user][_skillId], "User already has this skill");
+
+        // Add to verified skills registry
+        _addVerifiedSkill(_user, _skillId);
+
+        emit SkillDirectlyAssigned(_user, _skillId, msg.sender);
+    }
+
+    /**
+     * @dev Directly assign multiple skills to a user instantly (owner only)
+     * @param _user The user to assign the skills to
+     * @param _skillIds Array of skills to assign
+     */
+    function directlyAssignMultipleSkills(address _user, string[] memory _skillIds) public onlyOwner {
+        require(_user != address(0), "User address cannot be zero");
+        
+        for (uint256 i = 0; i < _skillIds.length; i++) {
+            if (bytes(_skillIds[i]).length > 0 && availableSkills[_skillIds[i]] && !userSkills[_user][_skillIds[i]]) {
+                _addVerifiedSkill(_user, _skillIds[i]);
+                emit SkillDirectlyAssigned(_user, _skillIds[i], msg.sender);
+            }
+        }
+    }
