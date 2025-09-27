@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
 contract SkillVerification {
@@ -88,9 +88,7 @@ contract SkillVerification {
         require(userSkills[msg.sender][_skillId], "You must have this skill verified to perform this action");
         _;
     }
-}
-
-    /**
+        /**
      * @dev Set the resolver address (owner only)
      * @param _newResolver The new resolver address
      */
@@ -547,5 +545,5 @@ contract SkillVerification {
         (bool success, ) = owner.call{value: balance}("");
         require(success, "Withdrawal failed");
     }
-
+}
 
