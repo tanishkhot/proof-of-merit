@@ -5,6 +5,7 @@ contract SkillVerification {
     address public owner;
     address public resolver;
 
+
     // Predefined stake amount: 0.01 ETH
     uint256 public constant PREDEFINED_STAKE_AMOUNT = 0.01 ether;
 
@@ -533,6 +534,87 @@ contract SkillVerification {
      */
     function getPredefinedStakeAmount() public pure returns (uint256) {
         return PREDEFINED_STAKE_AMOUNT;
+    }
+
+    /**
+     * @dev Get skill IDs of all claims that are currently in the pending state and haven't been challenged
+     * @return Array of skill IDs that are pending and within the challenge window
+     */
+    function getPendingClaims() public view returns (string[] memory) {
+        string[] memory pendingSkillIds = new string[](nextClaimId);
+        uint256 pendingCount = 0;
+        
+        for (uint256 i = 1; i <= nextClaimId; i++) {
+            SkillClaim memory claim = claims[i];
+            
+            // Check if claim is in PENDING status and still within challenge window
+            if (claim.status == Status.PENDING && block.timestamp <= claim.challengeDeadline) {
+                pendingSkillIds[pendingCount] = claim.skillId;
+                pendingCount++;
+            }
+        }
+        
+        // Create a properly sized array with only the pending skill IDs
+        string[] memory result = new string[](pendingCount);
+        for (uint256 i = 0; i < pendingCount; i++) {
+            result[i] = pendingSkillIds[i];
+        }
+        
+        return result;
+    }
+
+    /**
+     * @dev Get all details of claims that are pending and haven't been challenged
+     * @return Array of SkillClaim structs that are pending and within the challenge window
+     */
+    function getPendingClaimsDetails() public view returns (SkillClaim[] memory) {
+        SkillClaim[] memory pendingClaims = new SkillClaim[](nextClaimId);
+        uint256 pendingCount = 0;
+        
+        for (uint256 i = 1; i <= nextClaimId; i++) {
+            SkillClaim memory claim = claims[i];
+            
+            // Check if claim is in PENDING status and still within challenge window
+            if (claim.status == Status.PENDING && block.timestamp <= claim.challengeDeadline) {
+                pendingClaims[pendingCount] = claim;
+                pendingCount++;
+            }
+        }
+        
+        // Create a properly sized array with only the pending claims
+        SkillClaim[] memory result = new SkillClaim[](pendingCount);
+        for (uint256 i = 0; i < pendingCount; i++) {
+            result[i] = pendingClaims[i];
+        }
+        
+        return result;
+    }
+
+    /**
+     * @dev Get claim IDs for all pending claims (useful for frontend indexing)
+     * @return Array of claim IDs that are currently pending
+     */
+    function getPendingClaimIds() public view returns (uint256[] memory) {
+        uint256[] memory pendingClaimIds = new uint256[](nextClaimId);
+        uint256 pendingCount = 0;
+        
+        for (uint256 i = 1; i <= nextClaimId; i++) {
+            SkillClaim memory claim = claims[i];
+            
+            // Check if claim is in PENDING status and still within challenge window
+            if (claim.status == Status.PENDING && block.timestamp <= claim.challengeDeadline) {
+                pendingClaimIds[pendingCount] = i;
+                pendingCount++;
+            }
+        }
+        
+        // Create a properly sized array with only the pending claim IDs
+        uint256[] memory result = new uint256[](pendingCount);
+        for (uint256 i = 0; i < pendingCount; i++) {
+            result[i] = pendingClaimIds[i];
+        }
+        
+        return result;
     }
 
     /**

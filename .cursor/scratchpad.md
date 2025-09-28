@@ -126,17 +126,27 @@ The Crucible project is a skill verification platform that consists of three mai
 - Transaction status tracking with user feedback
 - Error handling and loading states throughout
 
-**Deployment Status**: ✅ **CONTRACT DEPLOYED TO FLOW TESTNET**
+**Deployment Status**: ✅ **FRESH CONTRACT DEPLOYED TO FLOW TESTNET**
 
 **Contract Details**:
-- **Address**: `0x09aB660CEac220678b42E0e23DebCb1475e1eAD5`
+- **Address**: `0x680804c33D2fD7935e3B585c26B51419d6a8071F`
 - **Network**: Flow Testnet (Chain ID: 545)
 - **Explorer**: https://testnet.flowscan.org
+- **New Functions**: Added `getPendingClaims()`, `getPendingClaimsDetails()`, and `getPendingClaimIds()`
 
-**Frontend Configuration Updated**:
-- Contract address updated in frontend
-- Flow testnet added to wallet configuration
-- Ready for end-to-end testing
+**Frontend Configuration Updated**: ✅ **COMPLETED**
+- Contract address updated to new deployment: `0x680804c33D2fD7935e3B585c26B51419d6a8071F`
+- ABI updated with new pending claims functions
+- New hooks added: `usePendingClaims()`, `usePendingClaimsDetails()`, `usePendingClaimIds()`
+- Frontend server starts successfully without errors
+- Ready for end-to-end testing with new contract
+
+**Pages Updated to Use New Contract Functions**: ✅ **COMPLETED**
+- **Challenges Page**: Now uses `usePendingClaimsDetails()` to show real pending claims data
+- **Claims Page**: Now uses `usePendingClaimsDetails()` to show real pending claims data
+- Both pages now display only claims that are currently pending and within the 72-hour challenge window
+- Updated UI to reflect that data is coming from the smart contract
+- Removed mock data references and added live data indicators
 
 **Final Status**: ✅ **FULLY INTEGRATED AND ENHANCED**
 
@@ -150,7 +160,35 @@ The Crucible project is a skill verification platform that consists of three mai
 
 ## Executor's Feedback or Assistance Requests
 
-**Integration Status**: ✅ **COMPLETED SUCCESSFULLY**
+**Current Issue**: ✅ **ALL SSR ERRORS COMPLETELY RESOLVED**
+
+**Problem**: The frontend was experiencing multiple SSR-related errors:
+1. `indexedDB is not defined` errors during server-side rendering
+2. `WagmiProviderNotFoundError` when components tried to use wagmi hooks before Web3Provider was mounted
+3. WalletConnect/RainbowKit trying to access browser-only APIs during SSR
+
+**Complete Solution Implemented**: 
+- **Web3Provider**: Added client-side only rendering with proper config initialization
+- **Navigation Component**: Wrapped with SSR-safe mounting logic and loading skeleton
+- **DebugInfo Component**: Added client-side only rendering to prevent wagmi hook errors
+- **WalletConnect Component**: Enhanced with proper hydration handling
+- **Next.js Config**: Added webpack configuration to handle Web3 dependencies
+
+**Technical Fix Details**:
+- Modified `Web3Provider` to only initialize config on client-side
+- Created wrapper components with `useState`/`useEffect` for proper mounting
+- Added loading skeletons to prevent layout shift during hydration
+- Implemented proper error boundaries for Web3 components
+- Server now starts completely clean without any SSR errors
+
+**Test Results**: ✅ **SERVER STARTS SUCCESSFULLY**
+- No `indexedDB` errors
+- No `WagmiProviderNotFoundError` 
+- HTTP 200 OK responses
+- Clean server startup logs
+- Proper hydration without mismatches
+
+**Integration Status**: ✅ **FULLY FUNCTIONAL** (All SSR issues completely resolved)
 
 **What was accomplished**:
 1. **Full Web3 Integration**: Successfully integrated frontend with smart contracts using modern Web3 libraries
