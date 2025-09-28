@@ -44,7 +44,7 @@ const ResolvePageContent = () => {
   const { data: challengeEvents, isLoading: challengeEventsLoading } = useContractChallenges();
   
   // Fallback to usePendingClaimsDetails if getAllChallengeDetails fails
-  const { data: fallbackClaims, isLoading: fallbackLoading, error: fallbackError } = usePendingClaimsDetails();
+  const { data: fallbackClaims, isLoading: fallbackLoading } = usePendingClaimsDetails();
   const { voteOnChallenge, hash, error, isPending } = useVoteOnChallenge();
   const { resolveChallenge, hash: resolveHash, error: resolveError, isPending: isResolvePending } = useResolveChallenge();
   const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
@@ -110,7 +110,6 @@ const ResolvePageContent = () => {
     
     // Otherwise, combine event-based claims with challenge events
     if (allClaims && challengeEvents) {
-      const challengedClaimsMap = new Map();
       
       // Get all challenged claims from the claims data
       const challengedClaimsFromEvents = allClaims.filter((claim: SkillClaim) => claim.status === SKILL_CLAIM_STATUS.CHALLENGED);

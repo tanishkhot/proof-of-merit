@@ -4,7 +4,7 @@ import { SKILL_VERIFICATION_ADDRESS } from '@/lib/contracts';
 
 interface ContractEvent {
   eventName: string;
-  args: any;
+  args: Record<string, unknown>;
   blockNumber: bigint;
 }
 import { parseAbiItem } from 'viem';
@@ -12,7 +12,7 @@ import { parseAbiItem } from 'viem';
 // Real implementation using viem to fetch contract events
 export function useContractEvents() {
   const publicClient = usePublicClient();
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<ContractEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -253,7 +253,7 @@ function getProblemStatement(skillId: string): string {
 // Hook to get challenges from events
 export function useContractChallenges() {
   const publicClient = usePublicClient();
-  const [challenges, setChallenges] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<ContractEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -309,7 +309,7 @@ export function useContractChallenges() {
 // Hook to listen for skill assignment events
 export function useSkillAssignmentEvents() {
   const publicClient = usePublicClient();
-  const [skillAssignments, setSkillAssignments] = useState<any[]>([]);
+  const [skillAssignments, setSkillAssignments] = useState<ContractEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

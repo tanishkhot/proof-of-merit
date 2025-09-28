@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { parseEther, parseAbiItem, decodeEventLog } from 'viem';
-import { SKILL_VERIFICATION_ABI, SKILL_VERIFICATION_ADDRESS, SKILL_CLAIM_STATUS } from '@/lib/contracts';
+import { SKILL_VERIFICATION_ABI, SKILL_VERIFICATION_ADDRESS } from '@/lib/contracts';
 
 export function useSkillClaim(claimId: number) {
   return useReadContract({
@@ -21,7 +21,7 @@ export function useSkillClaim(claimId: number) {
 // For now, we'll return empty array since we can't get all claims efficiently
 export function useSkillClaims() {
   return {
-    data: [] as any[],
+    data: [] as unknown[],
     isLoading: false,
     error: null,
   };
@@ -133,7 +133,7 @@ export function useChallengeForClaim(claimId: number) {
 // For now, we'll return empty array since we can't get all challenges efficiently
 export function useAllChallenges() {
   return {
-    data: [] as any[],
+    data: [] as unknown[],
     isLoading: false,
     error: null,
   };
@@ -469,7 +469,7 @@ export function useClaimIdFromTransaction(hash: `0x${string}` | undefined) {
               setClaimId(extractedClaimId);
               break;
             }
-          } catch (decodeError) {
+          } catch {
             // This log is not a ClaimStaked event, continue
             continue;
           }

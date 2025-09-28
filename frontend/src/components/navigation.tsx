@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useAccount } from 'wagmi';
+// import { useAccount } from 'wagmi'; // Unused for now
 import { WalletConnect } from './wallet-connect';
 import { useEffect, useState } from 'react';
 

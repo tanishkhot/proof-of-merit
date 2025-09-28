@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { useChallengeClaim, useTransactionStatus, useCheckTimeExpiry, useUserSkills, usePendingClaimsDetails } from '@/hooks/useSkillVerification';
-import { useContractEvents, useContractChallenges } from '@/hooks/useContractEvents';
+import { useContractEvents } from '@/hooks/useContractEvents';
 import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
 interface SkillClaim {
