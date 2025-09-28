@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { mainnet, sepolia, hardhat } from 'wagmi/chains';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Flow testnet configuration
 const flowTestnet = {
@@ -34,27 +34,6 @@ import { http } from 'viem';
 // Import RainbowKit styles
 import '@rainbow-me/rainbowkit/styles.css';
 
-// Configure chains for your app - only on client side
-const getConfig = () => {
-  if (typeof window === 'undefined') {
-    // Return a minimal config for SSR
-    return null;
-  }
-  
-  return getDefaultConfig({
-    appName: 'Crucible',
-    projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 'demo-project-id',
-    chains: [flowTestnet, mainnet, sepolia, hardhat],
-    transports: {
-      [flowTestnet.id]: http(),
-      [mainnet.id]: http(),
-      [sepolia.id]: http(),
-      [hardhat.id]: http(),
-    },
-    ssr: true, // Enable SSR support
-  });
-};
-
 // Create query client outside component to prevent re-initialization
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,16 +51,32 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  // Prevent hydration mismatch by not rendering Web3 components on server
-  if (!mounted) {
-    return <div>{children}</div>;
-  }
+  // Configure chains for your app - only on client side
+  const getConfig = () => {
+    if (typeof window === 'undefined') {
+      // Return a minimal config for SSR
+      return null;
+    }
+    
+    return getDefaultConfig({
+      appName: 'Crucible',
+      projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || 'demo-project-id',
+      chains: [flowTestnet, mainnet, sepolia, hardhat],
+      transports: {
+        [flowTestnet.id]: http(),
+        [mainnet.id]: http(),
+        [sepolia.id]: http(),
+        [hardhat.id]: http(),
+      },
+      ssr: true, // Enable SSR support
+    });
+  };
 
-  // Only create config on client side
   const config = getConfig();
-  
-  if (!config) {
-    return <div>{children}</div>;
+
+  // During SSR or before mount, render children without providers
+  if (!mounted || !config) {
+    return <>{children}</>;
   }
 
   return (

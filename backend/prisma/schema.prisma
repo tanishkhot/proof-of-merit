@@ -106,9 +106,10 @@ model VerifiedSkillProof {
   skillName               String     @map("skill_name")
   skillLevel              SkillLevel @map("skill_level")
   proofOfWorkUrl          String     @map("proof_of_work_url")
+  
 
   // --- Timestamp for Ranking (Your Suggestion) ---
   verifiedAt              DateTime   @map("verified_at") // The timestamp when the attestation was confirmed
-
+  @@unique([developerWalletAddress, skillName])
   @@map("verified_skill_proofs")
 }

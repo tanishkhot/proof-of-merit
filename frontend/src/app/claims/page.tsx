@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { useAvailableSkills, useSkillClaim, useChallengeClaim, useTransactionStatus, useHasUserSkill, usePendingClaimsDetails } from '@/hooks/useSkillVerification';
+import { useAvailableSkills, useSkillClaim, useChallengeClaim, useTransactionStatus, useHasUserSkill, usePendingClaimsDetails, useUserSkills } from '@/hooks/useSkillVerification';
 import { AddTestClaim } from '@/components/add-test-claim';
 import { SKILL_CLAIM_STATUS, SKILL_VERIFICATION_ADDRESS } from '@/lib/contracts';
 
@@ -12,6 +12,7 @@ const ClaimsPage = () => {
   const { challengeClaim, hash, error: challengeError, isPending } = useChallengeClaim();
   const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
   const { data: claims, isLoading: loading, error } = usePendingClaimsDetails();
+  const { data: userSkills, isLoading: userSkillsLoading } = useUserSkills(address);
 
   // Debug: Log the claims data
   useEffect(() => {
@@ -44,15 +45,20 @@ const ClaimsPage = () => {
     // 2. Problem is solved (or time expired)
     // 3. Still within challenge window
     // 4. Not your own claim
+    // 5. User has the skill verified (required by smart contract)
     const now = Date.now();
     const isOwnClaim = claim.user.toLowerCase() === address?.toLowerCase();
-    const isWithinChallengeWindow = now < claim.challengeDeadline;
-    const canChallengeNow = claim.problemSolved || now > claim.problemDeadline;
+    const challengeDeadlineNumber = typeof claim.challengeDeadline === 'bigint' ? Number(claim.challengeDeadline) : claim.challengeDeadline;
+    const problemDeadlineNumber = typeof claim.problemDeadline === 'bigint' ? Number(claim.problemDeadline) : claim.problemDeadline;
+    const isWithinChallengeWindow = now < challengeDeadlineNumber;
+    const canChallengeNow = claim.problemSolved || now > problemDeadlineNumber;
+    const hasRequiredSkill = userSkills && userSkills.includes(claim.skillId);
     
     return claim.status === SKILL_CLAIM_STATUS.PENDING && 
            !isOwnClaim && 
            isWithinChallengeWindow && 
-           canChallengeNow;
+           canChallengeNow &&
+           hasRequiredSkill;
   };
 
   const getStatusText = (status: number) => {
@@ -75,9 +81,10 @@ const ClaimsPage = () => {
     }
   };
 
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timestamp: number | bigint) => {
     const now = Date.now();
-    const diff = timestamp - now;
+    const timestampNumber = typeof timestamp === 'bigint' ? Number(timestamp) : timestamp;
+    const diff = timestampNumber - now;
     
     if (diff < 0) {
       return 'Expired';
@@ -94,7 +101,8 @@ const ClaimsPage = () => {
   };
 
   const isProblemExpired = (claim: any) => {
-    return Date.now() > claim.problemDeadline;
+    const problemDeadlineNumber = typeof claim.problemDeadline === 'bigint' ? Number(claim.problemDeadline) : claim.problemDeadline;
+    return Date.now() > problemDeadlineNumber;
   };
 
   if (!isConnected) {
@@ -243,7 +251,7 @@ const ClaimsPage = () => {
                   <div>
                     <span className="font-medium text-gray-700 dark:text-gray-300">Claimed:</span>
                     <span className="ml-2 text-gray-600 dark:text-gray-400">
-                      {new Date(claim.claimTimestamp).toLocaleString()}
+                      {new Date(typeof claim.claimTimestamp === 'bigint' ? Number(claim.claimTimestamp) : claim.claimTimestamp).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -264,7 +272,7 @@ const ClaimsPage = () => {
                   <div className="text-sm text-gray-500">
                     {claim.user.toLowerCase() === address?.toLowerCase() 
                       ? 'This is your own claim'
-                      : Date.now() > claim.challengeDeadline
+                      : Date.now() > (typeof claim.challengeDeadline === 'bigint' ? Number(claim.challengeDeadline) : claim.challengeDeadline)
                       ? 'Challenge window has expired'
                       : !claim.problemSolved && !isProblemExpired(claim)
                       ? 'Waiting for problem to be solved or time to expire'

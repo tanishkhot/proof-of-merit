@@ -483,3 +483,27 @@ export function usePendingClaimIds() {
     },
   });
 }
+
+export function useAllChallengeDetails() {
+  const result = useReadContract({
+    address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+    abi: SKILL_VERIFICATION_ABI,
+    functionName: 'getAllChallengeDetails',
+    query: {
+      retry: 1,
+      refetchInterval: 10000, // Refetch every 10 seconds
+    },
+  });
+
+  // Add detailed error logging
+  if (result.error) {
+    console.error('Error fetching challenge details:', {
+      error: result.error,
+      message: result.error.message,
+      cause: result.error.cause,
+      details: result.error.details,
+    });
+  }
+
+  return result;
+}

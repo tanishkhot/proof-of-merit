@@ -286,6 +286,33 @@ export const SKILL_VERIFICATION_ABI = [
   },
   {
     "inputs": [],
+    "name": "getAllChallengeDetails",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "uint256", "name": "challengeId", "type": "uint256"},
+          {"internalType": "address", "name": "challenger", "type": "address"},
+          {"internalType": "uint256", "name": "stakeAmount", "type": "uint256"},
+          {"internalType": "string", "name": "reason", "type": "string"},
+          {"internalType": "uint256", "name": "claimId", "type": "uint256"},
+          {"internalType": "uint256", "name": "challengeTimestamp", "type": "uint256"},
+          {"internalType": "address", "name": "claimant", "type": "address"},
+          {"internalType": "string", "name": "skillId", "type": "string"},
+          {"internalType": "uint8", "name": "claimStatus", "type": "uint8"},
+          {"internalType": "bool", "name": "problemSolved", "type": "bool"},
+          {"internalType": "string", "name": "problemStatement", "type": "string"},
+          {"internalType": "string", "name": "solution", "type": "string"}
+        ],
+        "internalType": "struct SkillVerification.ChallengeDetails[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getPendingClaimIds",
     "outputs": [{"internalType": "uint256[]", "name": "", "type": "uint256[]"}],
     "stateMutability": "view",

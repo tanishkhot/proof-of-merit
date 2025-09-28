@@ -24,31 +24,31 @@ export function useContractEvents() {
         console.log('Fetching contract events from:', SKILL_VERIFICATION_ADDRESS);
 
         // Fetch all relevant events from the contract
-        const [claimStakedLogs, solutionSubmittedLogs, claimChallengedLogs, challengeResolvedLogs] = await Promise.all([
+        const [claimStakedLogs, problemSolvedLogs, claimChallengedLogs, challengeResolvedLogs] = await Promise.all([
           // ClaimStaked events
           publicClient.getLogs({
             address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
-            event: parseAbiItem('event ClaimStaked(uint256 indexed claimId, address indexed user, string skillId, uint256 stakeAmount, uint256 timestamp)'),
+            event: parseAbiItem('event ClaimStaked(address indexed user, uint256 indexed claimId, string skillId, uint256 stakeAmount, string problemStatement)'),
             fromBlock: 'earliest',
             toBlock: 'latest'
           }).catch(err => {
             console.log('No ClaimStaked events found:', err.message);
             return [];
           }),
-          // SolutionSubmitted events
+          // ProblemSolved events
           publicClient.getLogs({
             address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
-            event: parseAbiItem('event SolutionSubmitted(uint256 indexed claimId, string solution, uint256 timestamp)'),
+            event: parseAbiItem('event ProblemSolved(uint256 indexed claimId, string solution)'),
             fromBlock: 'earliest',
             toBlock: 'latest'
           }).catch(err => {
-            console.log('No SolutionSubmitted events found:', err.message);
+            console.log('No ProblemSolved events found:', err.message);
             return [];
           }),
           // ClaimChallenged events
           publicClient.getLogs({
             address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
-            event: parseAbiItem('event ClaimChallenged(uint256 indexed claimId, address indexed challenger, string reason, uint256 stakeAmount, uint256 timestamp)'),
+            event: parseAbiItem('event ClaimChallenged(address indexed challenger, uint256 indexed claimId, string reason, uint256 stakeAmount)'),
             fromBlock: 'earliest',
             toBlock: 'latest'
           }).catch(err => {
@@ -58,7 +58,7 @@ export function useContractEvents() {
           // ChallengeResolved events
           publicClient.getLogs({
             address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
-            event: parseAbiItem('event ChallengeResolved(uint256 indexed claimId, bool claimantWon, address winner, uint256 totalDistributed)'),
+            event: parseAbiItem('event ChallengeResolved(uint256 indexed claimId, bool claimantWon, address winner, uint256 totalAmount)'),
             fromBlock: 'earliest',
             toBlock: 'latest'
           }).catch(err => {
@@ -69,7 +69,7 @@ export function useContractEvents() {
 
         console.log('Fetched events:', {
           claimStaked: claimStakedLogs.length,
-          solutionSubmitted: solutionSubmittedLogs.length,
+          problemSolved: problemSolvedLogs.length,
           claimChallenged: claimChallengedLogs.length,
           challengeResolved: challengeResolvedLogs.length
         });
@@ -77,7 +77,7 @@ export function useContractEvents() {
         // Combine all events and sort by block number
         const allEvents = [
           ...claimStakedLogs.map(log => ({ ...log, eventName: 'ClaimStaked' })),
-          ...solutionSubmittedLogs.map(log => ({ ...log, eventName: 'SolutionSubmitted' })),
+          ...problemSolvedLogs.map(log => ({ ...log, eventName: 'ProblemSolved' })),
           ...claimChallengedLogs.map(log => ({ ...log, eventName: 'ClaimChallenged' })),
           ...challengeResolvedLogs.map(log => ({ ...log, eventName: 'ChallengeResolved' }))
         ].sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber));
@@ -101,24 +101,26 @@ export function useContractEvents() {
     const claimsMap = new Map();
     
     events.forEach(event => {
-      const { eventName, args } = event;
+      const { eventName, args, blockNumber } = event;
       
       if (eventName === 'ClaimStaked') {
         const claimId = Number(args.claimId);
+        // Use block timestamp as a fallback since events don't have timestamp
+        const claimTimestamp = Math.floor(Date.now() / 1000); // Current timestamp as fallback
         claimsMap.set(claimId, {
           claimId,
           user: args.user,
           skillId: args.skillId,
           stakeAmount: args.stakeAmount.toString(),
           status: 0, // PENDING
-          claimTimestamp: Number(args.timestamp),
-          problemDeadline: Number(args.timestamp) + (2 * 60 * 60), // 2 hours
-          challengeDeadline: Number(args.timestamp) + (7 * 24 * 60 * 60), // 7 days
+          claimTimestamp: claimTimestamp,
+          problemDeadline: claimTimestamp + (2 * 60 * 60), // 2 hours
+          challengeDeadline: claimTimestamp + (74 * 60 * 60), // 72 hours + 2 hours
           problemSolved: false,
-          problemStatement: getProblemStatement(args.skillId),
+          problemStatement: args.problemStatement || getProblemStatement(args.skillId),
           solution: ''
         });
-      } else if (eventName === 'SolutionSubmitted') {
+      } else if (eventName === 'ProblemSolved') {
         const claimId = Number(args.claimId);
         const claim = claimsMap.get(claimId);
         if (claim) {
@@ -186,7 +188,7 @@ export function useContractChallenges() {
 
         const challengeLogs = await publicClient.getLogs({
           address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
-          event: parseAbiItem('event ClaimChallenged(uint256 indexed claimId, address indexed challenger, string reason, uint256 stakeAmount, uint256 timestamp)'),
+          event: parseAbiItem('event ClaimChallenged(address indexed challenger, uint256 indexed claimId, string reason, uint256 stakeAmount)'),
           fromBlock: 'earliest',
           toBlock: 'latest'
         }).catch(err => {
@@ -199,7 +201,7 @@ export function useContractChallenges() {
           challenger: log.args.challenger,
           reason: log.args.reason,
           stakeAmount: log.args.stakeAmount.toString(),
-          challengeTimestamp: Number(log.args.timestamp)
+          challengeTimestamp: Math.floor(Date.now() / 1000) // Fallback timestamp
         }));
 
         setChallenges(processedChallenges);
@@ -242,18 +244,18 @@ export function useSkillAssignmentEvents() {
 
         const assignmentLogs = await publicClient.getLogs({
           address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
-          event: parseAbiItem('event SkillAssigned(address indexed user, string skillId, uint256 timestamp)'),
+          event: parseAbiItem('event SkillVerified(address indexed user, string skillId)'),
           fromBlock: 'earliest',
           toBlock: 'latest'
         }).catch(err => {
-          console.log('No SkillAssigned events found:', err.message);
+          console.log('No SkillVerified events found:', err.message);
           return [];
         });
 
         const processedAssignments = assignmentLogs.map(log => ({
           user: log.args.user,
           skillId: log.args.skillId,
-          timestamp: Number(log.args.timestamp)
+          timestamp: Math.floor(Date.now() / 1000) // Fallback timestamp
         }));
 
         setSkillAssignments(processedAssignments);

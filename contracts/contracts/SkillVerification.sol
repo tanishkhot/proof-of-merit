@@ -49,6 +49,21 @@ contract SkillVerification {
         uint256 timestamp;
     }
 
+    struct ChallengeDetails {
+        uint256 challengeId;
+        address challenger;
+        uint256 stakeAmount;
+        string reason;
+        uint256 claimId;
+        uint256 challengeTimestamp;
+        address claimant;
+        string skillId;
+        uint8 claimStatus;
+        bool problemSolved;
+        string problemStatement;
+        string solution;
+    }
+
     // Events
     event ClaimStaked(address indexed user, uint256 indexed claimId, string skillId, uint256 stakeAmount, string problemStatement);
     event ProblemSolved(uint256 indexed claimId, string solution);
@@ -526,6 +541,56 @@ contract SkillVerification {
      */
     function getResolverVotes(uint256 _claimId) public view returns (ResolverVote[] memory) {
         return resolverVotes[_claimId];
+    }
+
+    /**
+     * @dev Get all challenge details with associated claim information
+     * @return Array of challenge details with claim information
+     */
+    function getAllChallengeDetails() public view returns (ChallengeDetails[] memory) {
+        // Return empty array if no challenges exist
+        if (nextChallengeId == 0) {
+            return new ChallengeDetails[](0);
+        }
+        
+        uint256 totalChallenges = 0;
+        
+        // Count total challenges first
+        for (uint256 i = 1; i <= nextChallengeId; i++) {
+            if (challenges[i].challenger != address(0) && challenges[i].claimId > 0 && challenges[i].claimId <= nextClaimId) {
+                totalChallenges++;
+            }
+        }
+        
+        ChallengeDetails[] memory challengeDetails = new ChallengeDetails[](totalChallenges);
+        uint256 index = 0;
+        
+        // Populate array
+        for (uint256 i = 1; i <= nextChallengeId; i++) {
+            if (challenges[i].challenger != address(0) && challenges[i].claimId > 0 && challenges[i].claimId <= nextClaimId) {
+                Challenge storage challenge = challenges[i];
+                SkillClaim storage claim = claims[challenge.claimId];
+                
+                challengeDetails[index] = ChallengeDetails({
+                    challengeId: i,
+                    challenger: challenge.challenger,
+                    stakeAmount: challenge.stakeAmount,
+                    reason: challenge.reason,
+                    claimId: challenge.claimId,
+                    challengeTimestamp: challenge.challengeTimestamp,
+                    claimant: claim.user,
+                    skillId: claim.skillId,
+                    claimStatus: uint8(claim.status),
+                    problemSolved: claim.problemSolved,
+                    problemStatement: claim.problemStatement,
+                    solution: claim.solution
+                });
+                
+                index++;
+            }
+        }
+        
+        return challengeDetails;
     }
 
     /**

@@ -1,242 +1,44 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useAccount } from 'wagmi';
-import { useVoteOnChallenge, useTransactionStatus } from '@/hooks/useSkillVerification';
-import { useContractEvents, useContractChallenges } from '@/hooks/useContractEvents';
-import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
+import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+// Dynamic import to ensure this component only loads on client side
+const ResolvePageContent = dynamic(() => import('./resolve-content'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-white text-gray-800 p-8 font-sans flex flex-col justify-center items-center">
+      <div className="max-w-4xl mx-auto text-center">
+        <h1 className="text-4xl font-light mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Loading...</h1>
+        <p className="text-xl text-gray-600 font-light mb-8">
+          Initializing Web3 connection...
+        </p>
+      </div>
+    </div>
+  )
+});
 
 const ResolvePage = () => {
-  const { isConnected, address } = useAccount();
-  const { data: skillClaims, isLoading: claimsLoading } = useContractEvents();
-  const { data: challenges, isLoading: challengesLoading } = useContractChallenges();
-  const { voteOnChallenge, hash, error, isPending } = useVoteOnChallenge();
-  const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
+  const [mounted, setMounted] = useState(false);
 
-  const [selectedChallenge, setSelectedChallenge] = useState<number | null>(null);
-  const [supportsClaimant, setSupportsClaimant] = useState<boolean>(true);
-  const [reasoning, setReasoning] = useState('');
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const handleVote = async (challengeId: number, claimId: number) => {
-    if (!isConnected) {
-      alert('Please connect your wallet first');
-      return;
-    }
-    
-    if (!reasoning.trim()) {
-      alert('Please provide reasoning for your vote');
-      return;
-    }
-
-    try {
-      await voteOnChallenge(claimId, supportsClaimant, reasoning);
-      setSelectedChallenge(null);
-      setReasoning('');
-    } catch (err) {
-      console.error('Error voting on challenge:', err);
-    }
-  };
-
-  const getClaimById = (claimId: number) => {
-    return skillClaims?.find((_: any, index: number) => index + 1 === claimId);
-  };
-
-  const getStatusText = (status: number) => {
-    switch (status) {
-      case SKILL_CLAIM_STATUS.PENDING: return 'Pending';
-      case SKILL_CLAIM_STATUS.CHALLENGED: return 'Challenged';
-      case SKILL_CLAIM_STATUS.VERIFIED: return 'Verified';
-      case SKILL_CLAIM_STATUS.REJECTED: return 'Rejected';
-      default: return 'Unknown';
-    }
-  };
-
-  const getStatusColor = (status: number) => {
-    switch (status) {
-      case SKILL_CLAIM_STATUS.PENDING: return 'text-yellow-500';
-      case SKILL_CLAIM_STATUS.CHALLENGED: return 'text-red-500';
-      case SKILL_CLAIM_STATUS.VERIFIED: return 'text-green-500';
-      case SKILL_CLAIM_STATUS.REJECTED: return 'text-gray-500';
-      default: return 'text-gray-500';
-    }
-  };
-
-  if (!isConnected) {
+  if (!mounted) {
     return (
       <div className="min-h-screen bg-white text-gray-800 p-8 font-sans flex flex-col justify-center items-center">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl font-light mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Connect Your Wallet</h1>
+          <h1 className="text-4xl font-light mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Loading...</h1>
           <p className="text-xl text-gray-600 font-light mb-8">
-            Please connect your wallet to resolve challenges.
+            Initializing Web3 connection...
           </p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-white text-gray-800 p-8 font-sans">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-10 text-center">
-          <h1 className="text-5xl font-light text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Resolve Challenges</h1>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl mb-4">
-            Error: {error.message}
-          </div>
-        )}
-
-        {isSuccess && (
-          <div className="bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded-xl mb-4">
-            Vote submitted successfully! Transaction hash: {hash}
-          </div>
-        )}
-
-        {challengesLoading ? (
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
-            <p className="text-gray-500">Loading challenges...</p>
-          </div>
-        ) : challenges && challenges.length > 0 ? (
-          <div className="space-y-8">
-            {challenges.map((challenge: any, index: number) => {
-              const claim = getClaimById(Number(challenge.claimId));
-              return (
-                <div key={index} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-2xl font-light text-gray-800">
-                        Challenge #{index + 1} - Claim #{challenge.claimId}
-                      </h3>
-                      <p className="text-gray-500">
-                        Challenged by: {`${challenge.challenger.slice(0, 6)}...${challenge.challenger.slice(-4)}`}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">
-                        {new Date(Number(challenge.challengeTimestamp) * 1000).toLocaleString()}
-                      </p>
-                      <p className="font-semibold text-gray-800">
-                        Stake: {Number(challenge.stakeAmount) / 1e18} ETH
-                      </p>
-                    </div>
-                  </div>
-
-                  {claim && (
-                    <div className="mb-4 p-6 bg-gray-50 rounded-xl">
-                      <h4 className="font-semibold text-gray-800 mb-3">Claim Details:</h4>
-                      <div className="grid grid-cols-2 gap-4 text-base">
-                        <div>
-                          <span className="font-medium text-gray-600">Claimant:</span> {`${claim.user.slice(0, 6)}...${claim.user.slice(-4)}`}
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Skill:</span> {claim.skillId}
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Status:</span> 
-                          <span className={`ml-1 font-semibold ${getStatusColor(claim.status)}`}>
-                            {getStatusText(claim.status)}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Problem Solved:</span> {claim.problemSolved ? 'Yes' : 'No'}
-                        </div>
-                      </div>
-                      {claim.solution && (
-                        <div className="mt-3">
-                          <span className="font-medium text-gray-600">Solution:</span>
-                          <a href={claim.solution} target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-500 hover:underline">
-                            View Solution
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="mb-6 p-6 bg-red-50 rounded-xl">
-                    <h4 className="font-semibold text-red-800 mb-2">Challenge Reason:</h4>
-                    <p className="text-red-700">{challenge.reason}</p>
-                  </div>
-
-                  {selectedChallenge === index ? (
-                    <div className="border-t border-gray-100 pt-6">
-                      <h4 className="font-semibold text-gray-800 mb-4">Cast Your Vote:</h4>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-base font-medium text-gray-700 mb-2">
-                            Vote:
-                          </label>
-                          <div className="flex space-x-6">
-                            <label className="flex items-center text-lg">
-                              <input
-                                type="radio"
-                                checked={supportsClaimant}
-                                onChange={() => setSupportsClaimant(true)}
-                                className="mr-2 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
-                              />
-                              Support Claimant
-                            </label>
-                            <label className="flex items-center text-lg">
-                              <input
-                                type="radio"
-                                checked={!supportsClaimant}
-                                onChange={() => setSupportsClaimant(false)}
-                                className="mr-2 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
-                              />
-                              Support Challenger
-                            </label>
-                          </div>
-                        </div>
-                        <div>
-                          <label htmlFor="reasoning" className="block text-base font-medium text-gray-700 mb-2">
-                            Reasoning:
-                          </label>
-                          <textarea
-                            id="reasoning"
-                            value={reasoning}
-                            onChange={(e) => setReasoning(e.target.value)}
-                            rows={4}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-base"
-                            placeholder="Explain your reasoning for this vote..."
-                          />
-                        </div>
-                        <div className="flex space-x-4 pt-4">
-                          <button
-                            onClick={() => handleVote(index + 1, Number(challenge.claimId))}
-                            disabled={isPending || isConfirming}
-                            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-normal py-3 px-8 rounded-xl shadow-md transition-all duration-300"
-                          >
-                            {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Submit Vote'}
-                          </button>
-                          <button
-                            onClick={() => setSelectedChallenge(null)}
-                            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-normal py-3 px-8 rounded-xl transition-all duration-300"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setSelectedChallenge(index)}
-                      className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-normal py-3 px-8 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105"
-                    >
-                      Vote on Challenge
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
-            <p className="text-gray-500">No active challenges found</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return <ResolvePageContent />;
 };
 
 export default ResolvePage;
