@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { useAvailableSkills, useSkillClaim, useChallengeClaim, useTransactionStatus, useHasUserSkill } from '@/hooks/useSkillVerification';
-import { useContractEvents } from '@/hooks/useContractEvents';
+import { useAvailableSkills, useSkillClaim, useChallengeClaim, useTransactionStatus, useHasUserSkill, usePendingClaimsDetails } from '@/hooks/useSkillVerification';
 import { AddTestClaim } from '@/components/add-test-claim';
 import { SKILL_CLAIM_STATUS, SKILL_VERIFICATION_ADDRESS } from '@/lib/contracts';
 
@@ -12,7 +11,7 @@ const ClaimsPage = () => {
   const { data: availableSkills } = useAvailableSkills();
   const { challengeClaim, hash, error: challengeError, isPending } = useChallengeClaim();
   const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
-  const { data: claims, isLoading: loading, error } = useContractEvents();
+  const { data: claims, isLoading: loading, error } = usePendingClaimsDetails();
 
   // Debug: Log the claims data
   useEffect(() => {

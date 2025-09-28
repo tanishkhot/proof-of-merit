@@ -3,8 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
-import { useChallengeClaim, useTransactionStatus, useCheckTimeExpiry, useUserSkills } from '@/hooks/useSkillVerification';
-import { useContractEvents, useContractChallenges } from '@/hooks/useContractEvents';
+import { useChallengeClaim, useTransactionStatus, useCheckTimeExpiry, useUserSkills, usePendingClaimsDetails } from '@/hooks/useSkillVerification';
+import { useContractChallenges } from '@/hooks/useContractEvents';
 import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
 const Sidebar = () => {
@@ -34,7 +34,7 @@ const Sidebar = () => {
 
 const ChallengesPage = () => {
   const { isConnected, address } = useAccount();
-  const { data: skillClaims, isLoading, error } = useContractEvents();
+  const { data: skillClaims, isLoading, error } = usePendingClaimsDetails();
   const { data: challenges, isLoading: challengesLoading } = useContractChallenges();
   const { data: userSkills } = useUserSkills(address);
   const { challengeClaim, hash, error: challengeError, isPending } = useChallengeClaim();
