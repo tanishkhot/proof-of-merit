@@ -43,7 +43,7 @@ export default function RecruitPage() {
 
     try {
       // Use the backend running on port 8000
-      const response = await fetch('http://localhost:8000/api/aisearch/parse', {
+      const response = await fetch('https://proof-of-merit-1.onrender.com/api/aisearch/parse', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
