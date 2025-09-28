@@ -144,13 +144,13 @@ const ClaimsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {claims.length}
+              {claims?.length || 0}
             </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Total Claims</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Pending Claims</div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {claims.filter(claim => canChallenge(claim)).length}
+              {claims?.filter(claim => canChallenge(claim)).length || 0}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Challengeable</div>
           </div>
@@ -171,18 +171,18 @@ const ClaimsPage = () => {
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
             Error loading claims: {error}
           </div>
-        ) : claims.length === 0 ? (
+        ) : !claims || claims.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
             <p className="text-gray-600 dark:text-gray-400">No claims found</p>
           </div>
         ) : (
           <div className="space-y-6">
-            {claims.map((claim) => (
-              <div key={claim.claimId} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            {claims.map((claim, index) => (
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                      Claim #{claim.claimId} - {claim.skillId}
+                      Claim #{index + 1} - {claim.skillId}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400">
                       by {claim.user.slice(0, 6)}...{claim.user.slice(-4)}
@@ -252,7 +252,7 @@ const ClaimsPage = () => {
                 {canChallenge(claim) && (
                   <div className="flex justify-end">
                     <button
-                      onClick={() => handleChallenge(claim.claimId)}
+                      onClick={() => handleChallenge(index + 1)}
                       disabled={isPending || isConfirming}
                       className="bg-red-500 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded"
                     >
@@ -278,18 +278,18 @@ const ClaimsPage = () => {
           </div>
         )}
 
-        {/* Note about mock data */}
-        <div className="mt-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Note</h3>
-          <div className="text-yellow-700 dark:text-yellow-300 space-y-2">
-            <p>This page currently shows mock data for demonstration purposes.</p>
-            <p>In a production environment, claims would be fetched from:</p>
+        {/* Note about real data */}
+        <div className="mt-8 bg-green-50 dark:bg-green-900/20 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">Live Data</h3>
+          <div className="text-green-700 dark:text-green-300 space-y-2">
+            <p>This page now shows real data from the smart contract using the new <code>getPendingClaimsDetails()</code> function.</p>
+            <p>Data is fetched directly from the deployed contract on Flow Testnet:</p>
             <ul className="list-disc list-inside ml-4">
-              <li>Smart contract events (ClaimStaked, SolutionSubmitted, etc.)</li>
-              <li>A backend service that indexes blockchain events</li>
-              <li>Or a combination of both</li>
+              <li>Contract Address: {SKILL_VERIFICATION_ADDRESS}</li>
+              <li>Function: getPendingClaimsDetails()</li>
+              <li>Network: Flow Testnet (Chain ID: 545)</li>
             </ul>
-            <p>The contract currently only supports individual claim lookup by ID, so bulk operations require event indexing.</p>
+            <p>Only claims that are currently pending and within the 72-hour challenge window are displayed.</p>
           </div>
         </div>
       </div>

@@ -439,3 +439,47 @@ export function useTransactionStatus(hash: `0x${string}` | undefined) {
     hash,
   });
 }
+
+// New pending claims hooks
+export function usePendingClaims() {
+  return useReadContract({
+    address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+    abi: SKILL_VERIFICATION_ABI,
+    functionName: 'getPendingClaims',
+    query: {
+      retry: 1,
+      refetchInterval: 10000, // Refetch every 10 seconds
+    },
+  });
+}
+
+export function usePendingClaimsDetails() {
+  const result = useReadContract({
+    address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+    abi: SKILL_VERIFICATION_ABI,
+    functionName: 'getPendingClaimsDetails',
+    query: {
+      retry: 1,
+      refetchInterval: 10000, // Refetch every 10 seconds
+    },
+  });
+
+  // Add error logging
+  if (result.error) {
+    console.error('Error fetching pending claims details:', result.error);
+  }
+
+  return result;
+}
+
+export function usePendingClaimIds() {
+  return useReadContract({
+    address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+    abi: SKILL_VERIFICATION_ABI,
+    functionName: 'getPendingClaimIds',
+    query: {
+      retry: 1,
+      refetchInterval: 10000, // Refetch every 10 seconds
+    },
+  });
+}

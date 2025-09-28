@@ -252,6 +252,45 @@ export const SKILL_VERIFICATION_ABI = [
     "stateMutability": "nonpayable",
     "type": "function"
   },
+  {
+    "inputs": [],
+    "name": "getPendingClaims",
+    "outputs": [{"internalType": "string[]", "name": "", "type": "string[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getPendingClaimsDetails",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "address", "name": "user", "type": "address"},
+          {"internalType": "string", "name": "skillId", "type": "string"},
+          {"internalType": "uint256", "name": "stakeAmount", "type": "uint256"},
+          {"internalType": "uint8", "name": "status", "type": "uint8"},
+          {"internalType": "uint256", "name": "claimTimestamp", "type": "uint256"},
+          {"internalType": "uint256", "name": "problemDeadline", "type": "uint256"},
+          {"internalType": "uint256", "name": "challengeDeadline", "type": "uint256"},
+          {"internalType": "bool", "name": "problemSolved", "type": "bool"},
+          {"internalType": "string", "name": "problemStatement", "type": "string"},
+          {"internalType": "string", "name": "solution", "type": "string"}
+        ],
+        "internalType": "struct SkillVerification.SkillClaim[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getPendingClaimIds",
+    "outputs": [{"internalType": "uint256[]", "name": "", "type": "uint256[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
   // Events
   {
     "anonymous": false,
@@ -277,7 +316,7 @@ export const SKILL_VERIFICATION_ABI = [
 ] as const;
 
 // Contract address - deployed to Flow testnet
-export const SKILL_VERIFICATION_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x09aB660CEac220678b42E0e23DebCb1475e1eAD5";
+export const SKILL_VERIFICATION_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x680804c33D2fD7935e3B585c26B51419d6a8071F";
 
 // Status enum values
 export const SKILL_CLAIM_STATUS = {

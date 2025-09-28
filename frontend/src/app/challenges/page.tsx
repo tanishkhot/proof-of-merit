@@ -108,7 +108,8 @@ const ChallengesPage = () => {
         <Sidebar />
         <div className="w-3/4">
             <div className="mb-10 text-center">
-              <h1 className="text-5xl font-light text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Skill Claims & Challenges</h1>
+              <h1 className="text-5xl font-light text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Pending Claims & Challenges</h1>
+              <p className="text-lg text-gray-600 mt-4">Showing claims currently in the 72-hour pending state</p>
             </div>
             
             {isLoading && (

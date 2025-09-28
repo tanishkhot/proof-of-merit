@@ -2,8 +2,9 @@
 
 import { useAccount, useChainId } from 'wagmi';
 import { useSkillClaims, useAvailableSkills } from '@/hooks/useSkillVerification';
+import { useEffect, useState } from 'react';
 
-export function DebugInfo() {
+function DebugInfoContent() {
   const { address, isConnected, chain } = useAccount();
   const chainId = useChainId();
   const { data: skillClaims, isLoading: claimsLoading, error: claimsError } = useSkillClaims();
@@ -31,4 +32,18 @@ export function DebugInfo() {
       </div>
     </div>
   );
+}
+
+export function DebugInfo() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
+  return <DebugInfoContent />;
 }
