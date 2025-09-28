@@ -8,7 +8,7 @@ import { useReadContract } from 'wagmi';
 export default function TestContractPage() {
   const { isConnected, address } = useAccount();
   const publicClient = usePublicClient();
-  const [contractInfo, setContractInfo] = useState<any>({});
+  const [contractInfo, setContractInfo] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

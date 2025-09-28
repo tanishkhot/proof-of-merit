@@ -1,11 +1,25 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { useChallengeClaim, useTransactionStatus, useCheckTimeExpiry, useUserSkills, usePendingClaimsDetails } from '@/hooks/useSkillVerification';
-import { useContractChallenges } from '@/hooks/useContractEvents';
+import { useContractEvents, useContractChallenges } from '@/hooks/useContractEvents';
 import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
+
+interface SkillClaim {
+  claimId: number;
+  user: string;
+  skillId: string;
+  stakeAmount: string;
+  status: number;
+  claimTimestamp: number;
+  problemDeadline: number;
+  challengeDeadline: number;
+  problemSolved: boolean;
+  problemStatement: string;
+  solution: string;
+}
 
 const Sidebar = () => {
   const { address, isConnected } = useAccount();
@@ -38,12 +52,40 @@ const Sidebar = () => {
 
 const ChallengesPageContent = () => {
   const { address, isConnected } = useAccount();
-  const { data: skillClaims, isLoading, error } = usePendingClaimsDetails();
-  const { data: challenges, isLoading: challengesLoading } = useContractChallenges();
+  const { data: pendingClaims, isLoading: pendingLoading, error: pendingError, refetch: refetchPending } = usePendingClaimsDetails();
+  const { data: allClaims, isLoading: eventsLoading, error: eventsError, refetch: refetchEvents } = useContractEvents();
+  // const { data: challenges } = useContractChallenges(); // Unused for now
   const { data: userSkills } = useUserSkills(address);
   const { challengeClaim, hash, error: challengeError, isPending } = useChallengeClaim();
   const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
   const { checkTimeExpiry } = useCheckTimeExpiry();
+
+  // Combine pending claims with event-based claims for complete view
+  const skillClaims = React.useMemo(() => {
+    // Use event-based claims if available, fallback to pending claims
+    if (allClaims && allClaims.length > 0) {
+      return allClaims;
+    }
+    return pendingClaims || [];
+  }, [allClaims, pendingClaims]);
+
+  const isLoading = pendingLoading || eventsLoading;
+  const error = pendingError || eventsError;
+
+  // Refetch data when a transaction is successful
+  useEffect(() => {
+    if (isSuccess) {
+      // Refetch both pending claims and events after successful transaction
+      refetchPending?.();
+      refetchEvents?.();
+      
+      // Also add a small delay to ensure blockchain state has updated
+      setTimeout(() => {
+        refetchPending?.();
+        refetchEvents?.();
+      }, 2000);
+    }
+  }, [isSuccess, refetchPending, refetchEvents]);
 
   const handleChallenge = async (claimId: number, reason: string) => {
     if (!isConnected) {
@@ -63,7 +105,7 @@ const ChallengesPageContent = () => {
     }
   };
 
-  const handleTimeExpiryCheck = async (claimId: number) => {
+  const handleTimeExpiryCheck = async (claimId: number): Promise<void> => {
     if (!isConnected) {
       alert('Please connect your wallet first');
       return;
@@ -76,7 +118,7 @@ const ChallengesPageContent = () => {
     }
   };
 
-  const canChallenge = (claim: any) => {
+  const canChallenge = (claim: SkillClaim) => {
     if (!isConnected || !address) return false;
     if (claim.user.toLowerCase() === address.toLowerCase()) return false;
     if (claim.status !== SKILL_CLAIM_STATUS.PENDING) return false;
@@ -130,6 +172,15 @@ const ChallengesPageContent = () => {
           <p className="text-xl text-gray-600 font-light mt-4">
             Challenge skill claims that you believe are invalid
           </p>
+          <button
+            onClick={() => {
+              refetchPending?.();
+              refetchEvents?.();
+            }}
+            className="mt-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-normal py-2 px-6 rounded-xl shadow-md transition-all duration-300"
+          >
+            🔄 Refresh Claims
+          </button>
         </div>
 
         <div className="flex gap-8">
@@ -160,7 +211,7 @@ const ChallengesPageContent = () => {
               </div>
             ) : skillClaims && skillClaims.length > 0 ? (
               <div className="space-y-6">
-                {skillClaims.map((claim: any, index: number) => {
+                {skillClaims.map((claim: SkillClaim, index: number) => {
                   const canChallengeThis = canChallenge(claim);
                   
                   return (

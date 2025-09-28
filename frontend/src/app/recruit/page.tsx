@@ -116,8 +116,8 @@ export default function RecruitPage() {
         <div className="w-full max-w-3xl mt-12">
           <h2 className="text-3xl font-light text-center mb-8">Adjust Skill Requirements</h2>
           <div className="space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
-            {requirements.map(({ skill, level }) => (
-              <div key={skill}>
+            {requirements.map(({ skill, level }, index) => (
+              <div key={`${skill}-${index}`}>
                 <label htmlFor={skill} className="text-xl font-normal mb-3 flex justify-between items-center text-gray-700">
                   <span>{skill}</span>
                   <span className="text-lg font-normal text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">

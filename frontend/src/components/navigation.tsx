@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 
 function NavigationContent() {
   const pathname = usePathname();
-  const { isConnected, address } = useAccount();
+  // const { isConnected, address } = useAccount(); // Unused for now
 
   const isActive = (path: string) => pathname === path;
 

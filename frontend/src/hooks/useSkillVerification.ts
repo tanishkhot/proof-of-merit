@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
-import { parseEther } from 'viem';
+import { parseEther, parseAbiItem, decodeEventLog } from 'viem';
 import { SKILL_VERIFICATION_ABI, SKILL_VERIFICATION_ADDRESS, SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
 export function useSkillClaim(claimId: number) {
@@ -13,7 +13,7 @@ export function useSkillClaim(claimId: number) {
     args: [BigInt(claimId)],
     query: {
       retry: 1,
-      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchInterval: 60000, // Refetch every 60 seconds (reduced from 10s)
     },
   });
 }
@@ -199,8 +199,8 @@ export function useUserSkills(userAddress: `0x${string}` | undefined) {
 
     checkUserSkills();
     
-    // Refresh user skills every 30 seconds to catch new assignments
-    const interval = setInterval(checkUserSkills, 30000);
+    // Refresh user skills every 2 minutes (reduced frequency to prevent excessive reloading)
+    const interval = setInterval(checkUserSkills, 120000);
     
     return () => clearInterval(interval);
   }, [userAddress, availableSkills, publicClient]);
@@ -219,7 +219,7 @@ export function useAvailableSkills() {
     functionName: 'getAllSkills',
     query: {
       retry: 1,
-      refetchInterval: 30000, // Refetch every 30 seconds
+      refetchInterval: 120000, // Refetch every 2 minutes (reduced from 30s)
     },
   });
 }
@@ -440,6 +440,51 @@ export function useTransactionStatus(hash: `0x${string}` | undefined) {
   });
 }
 
+// Hook to extract claim ID from ClaimStaked event
+export function useClaimIdFromTransaction(hash: `0x${string}` | undefined) {
+  const [claimId, setClaimId] = useState<number | null>(null);
+  const publicClient = usePublicClient();
+  
+  useEffect(() => {
+    const extractClaimId = async () => {
+      if (!hash || !publicClient) return;
+      
+      try {
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        
+        // Parse ClaimStaked events from the transaction receipt
+        const claimStakedEvent = parseAbiItem('event ClaimStaked(address indexed user, uint256 indexed claimId, string skillId, uint256 stakeAmount, string problemStatement)');
+        
+        for (const log of receipt.logs) {
+          try {
+            const decoded = decodeEventLog({
+              abi: [claimStakedEvent],
+              data: log.data,
+              topics: log.topics,
+            });
+            
+            if (decoded.eventName === 'ClaimStaked') {
+              const extractedClaimId = Number(decoded.args.claimId);
+              console.log('Extracted claim ID from transaction:', extractedClaimId);
+              setClaimId(extractedClaimId);
+              break;
+            }
+          } catch (decodeError) {
+            // This log is not a ClaimStaked event, continue
+            continue;
+          }
+        }
+      } catch (error) {
+        console.error('Error extracting claim ID from transaction:', error);
+      }
+    };
+    
+    extractClaimId();
+  }, [hash, publicClient]);
+  
+  return claimId;
+}
+
 // New pending claims hooks
 export function usePendingClaims() {
   return useReadContract({
@@ -448,7 +493,7 @@ export function usePendingClaims() {
     functionName: 'getPendingClaims',
     query: {
       retry: 1,
-      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchInterval: 60000, // Refetch every 60 seconds (reduced from 10s)
     },
   });
 }
@@ -460,7 +505,7 @@ export function usePendingClaimsDetails() {
     functionName: 'getPendingClaimsDetails',
     query: {
       retry: 1,
-      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchInterval: 60000, // Refetch every 60 seconds (reduced from 10s)
     },
   });
 
@@ -479,7 +524,7 @@ export function usePendingClaimIds() {
     functionName: 'getPendingClaimIds',
     query: {
       retry: 1,
-      refetchInterval: 10000, // Refetch every 10 seconds
+      refetchInterval: 60000, // Refetch every 60 seconds (reduced from 10s)
     },
   });
 }
@@ -490,20 +535,33 @@ export function useAllChallengeDetails() {
     abi: SKILL_VERIFICATION_ABI,
     functionName: 'getAllChallengeDetails',
     query: {
-      retry: 1,
-      refetchInterval: 10000, // Refetch every 10 seconds
+      retry: false, // Don't retry if function doesn't exist
+      refetchInterval: 60000, // Refetch every 60 seconds (reduced from 10s)
     },
   });
 
   // Add detailed error logging
   if (result.error) {
-    console.error('Error fetching challenge details:', {
+    console.warn('getAllChallengeDetails function not available on deployed contract:', {
       error: result.error,
       message: result.error.message,
       cause: result.error.cause,
       details: result.error.details,
     });
+    console.log('This is expected if the contract hasn\'t been redeployed with the new function.');
   }
 
   return result;
+}
+
+// Hook to check if current user is contract owner
+export function useIsContractOwner(userAddress: `0x${string}` | undefined) {
+  return useReadContract({
+    address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+    abi: SKILL_VERIFICATION_ABI,
+    functionName: 'owner',
+    query: {
+      enabled: !!userAddress,
+    },
+  });
 }

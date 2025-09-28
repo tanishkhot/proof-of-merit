@@ -6,6 +6,26 @@ import { useUserSkills } from '@/hooks/useSkillVerification';
 import { useContractEvents, useSkillAssignmentEvents } from '@/hooks/useContractEvents';
 import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
 
+interface SkillClaim {
+  claimId: number;
+  user: string;
+  skillId: string;
+  stakeAmount: string;
+  status: number;
+  claimTimestamp: number;
+  problemDeadline: number;
+  challengeDeadline: number;
+  problemSolved: boolean;
+  problemStatement: string;
+  solution: string;
+}
+
+interface SkillAssignment {
+  user: string;
+  skillId: string;
+  timestamp: number;
+}
+
 const ProfilePageContent = () => {
   const { isConnected, address } = useAccount();
   const { data: userSkills, isLoading: skillsLoading } = useUserSkills(address);
@@ -92,8 +112,8 @@ const ProfilePageContent = () => {
           ) : skillClaims && skillClaims.length > 0 ? (
             <div className="space-y-6">
               {skillClaims
-                .filter((claim: any) => claim.user === address)
-                .map((claim: any, index: number) => (
+                .filter((claim: SkillClaim) => claim.user === address)
+                .map((claim: SkillClaim, index: number) => (
                   <div key={index} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -148,8 +168,8 @@ const ProfilePageContent = () => {
             <h2 className="text-3xl font-light text-gray-800 mb-6">Skill Assignments</h2>
             <div className="space-y-4">
               {skillAssignments
-                .filter((assignment: any) => assignment.user === address)
-                .map((assignment: any, index: number) => (
+                .filter((assignment: SkillAssignment) => assignment.user === address)
+                .map((assignment: SkillAssignment, index: number) => (
                   <div key={index} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
                     <div className="flex justify-between items-center">
                       <div>

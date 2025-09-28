@@ -4,7 +4,6 @@ import "./globals.css";
 import { Web3Provider } from "@/lib/web3-provider";
 import { Navigation } from "@/components/navigation";
 import { DebugInfo } from "@/components/debug-info";
-import { TransactionDebugger } from "@/components/transaction-debugger";
 import { Footer } from "@/components/footer";
 
 const geistSans = Geist({

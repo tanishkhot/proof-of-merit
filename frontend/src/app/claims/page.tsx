@@ -1,8 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { useAvailableSkills, useSkillClaim, useChallengeClaim, useTransactionStatus, useHasUserSkill, usePendingClaimsDetails, useUserSkills } from '@/hooks/useSkillVerification';
+import { useAvailableSkills, useChallengeClaim, useTransactionStatus, usePendingClaimsDetails, useUserSkills } from '@/hooks/useSkillVerification';
+
+interface SkillClaim {
+  claimId: number;
+  user: string;
+  skillId: string;
+  stakeAmount: string;
+  status: number;
+  claimTimestamp: number;
+  problemDeadline: number;
+  challengeDeadline: number;
+  problemSolved: boolean;
+  problemStatement: string;
+  solution: string;
+}
 import { AddTestClaim } from '@/components/add-test-claim';
 import { SKILL_CLAIM_STATUS, SKILL_VERIFICATION_ADDRESS } from '@/lib/contracts';
 
@@ -12,7 +26,7 @@ const ClaimsPage = () => {
   const { challengeClaim, hash, error: challengeError, isPending } = useChallengeClaim();
   const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
   const { data: claims, isLoading: loading, error } = usePendingClaimsDetails();
-  const { data: userSkills, isLoading: userSkillsLoading } = useUserSkills(address);
+  const { data: userSkills } = useUserSkills(address);
 
   // Debug: Log the claims data
   useEffect(() => {
@@ -39,7 +53,7 @@ const ClaimsPage = () => {
     }
   };
 
-  const canChallenge = (claim: any) => {
+  const canChallenge = (claim: SkillClaim) => {
     // Can challenge if:
     // 1. Claim is pending
     // 2. Problem is solved (or time expired)
@@ -100,7 +114,7 @@ const ClaimsPage = () => {
     }
   };
 
-  const isProblemExpired = (claim: any) => {
+  const isProblemExpired = (claim: SkillClaim) => {
     const problemDeadlineNumber = typeof claim.problemDeadline === 'bigint' ? Number(claim.problemDeadline) : claim.problemDeadline;
     return Date.now() > problemDeadlineNumber;
   };

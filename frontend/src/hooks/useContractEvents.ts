@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePublicClient } from 'wagmi';
-import { SKILL_VERIFICATION_ADDRESS, SKILL_VERIFICATION_ABI } from '@/lib/contracts';
+import { SKILL_VERIFICATION_ADDRESS } from '@/lib/contracts';
+
+interface ContractEvent {
+  eventName: string;
+  args: any;
+  blockNumber: bigint;
+}
 import { parseAbiItem } from 'viem';
 
 // Real implementation using viem to fetch contract events
@@ -94,14 +100,19 @@ export function useContractEvents() {
     };
 
     fetchEvents();
+    
+    // Set up automatic refetching every 60 seconds (reduced from 15s to prevent excessive reloading)
+    const interval = setInterval(fetchEvents, 60000);
+    
+    return () => clearInterval(interval);
   }, [publicClient]);
 
   // Process events to create claims data
-  const processEvents = (events: any[]) => {
+  const processEvents = (events: ContractEvent[]) => {
     const claimsMap = new Map();
     
     events.forEach(event => {
-      const { eventName, args, blockNumber } = event;
+      const { eventName, args } = event;
       
       if (eventName === 'ClaimStaked') {
         const claimId = Number(args.claimId);
@@ -145,10 +156,81 @@ export function useContractEvents() {
     return Array.from(claimsMap.values());
   };
 
+  const refetch = React.useCallback(async () => {
+    if (!publicClient) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('Manually refetching contract events from:', SKILL_VERIFICATION_ADDRESS);
+
+      // Fetch all relevant events from the contract
+      const [claimStakedLogs, problemSolvedLogs, claimChallengedLogs, challengeResolvedLogs] = await Promise.all([
+        // ClaimStaked events
+        publicClient.getLogs({
+          address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+          event: parseAbiItem('event ClaimStaked(address indexed user, uint256 indexed claimId, string skillId, uint256 stakeAmount, string problemStatement)'),
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        }).catch(err => {
+          console.log('No ClaimStaked events found:', err.message);
+          return [];
+        }),
+        // ProblemSolved events
+        publicClient.getLogs({
+          address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+          event: parseAbiItem('event ProblemSolved(uint256 indexed claimId, string solution)'),
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        }).catch(err => {
+          console.log('No ProblemSolved events found:', err.message);
+          return [];
+        }),
+        // ClaimChallenged events
+        publicClient.getLogs({
+          address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+          event: parseAbiItem('event ClaimChallenged(address indexed challenger, uint256 indexed claimId, string reason, uint256 stakeAmount)'),
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        }).catch(err => {
+          console.log('No ClaimChallenged events found:', err.message);
+          return [];
+        }),
+        // ChallengeResolved events
+        publicClient.getLogs({
+          address: SKILL_VERIFICATION_ADDRESS as `0x${string}`,
+          event: parseAbiItem('event ChallengeResolved(uint256 indexed claimId, bool claimantWon, address winner, uint256 totalAmount)'),
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        }).catch(err => {
+          console.log('No ChallengeResolved events found:', err.message);
+          return [];
+        })
+      ]);
+
+      // Combine all events and sort by block number
+      const allEvents = [
+        ...claimStakedLogs.map(log => ({ ...log, eventName: 'ClaimStaked' })),
+        ...problemSolvedLogs.map(log => ({ ...log, eventName: 'ProblemSolved' })),
+        ...claimChallengedLogs.map(log => ({ ...log, eventName: 'ClaimChallenged' })),
+        ...challengeResolvedLogs.map(log => ({ ...log, eventName: 'ChallengeResolved' }))
+      ].sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber));
+
+      setEvents(allEvents);
+    } catch (err) {
+      console.error('Error refetching contract events:', err);
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [publicClient]);
+
   return {
     data: processEvents(events),
     isLoading,
-    error
+    error,
+    refetch
   };
 }
 

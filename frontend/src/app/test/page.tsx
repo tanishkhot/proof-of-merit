@@ -80,7 +80,7 @@ const TestPage = () => {
             <div className="text-blue-700 dark:text-blue-300 space-y-2">
               <p>If you see errors above, try these steps:</p>
               <ol className="list-decimal list-inside space-y-1">
-                <li>Make sure you're connected to Flow Testnet (Chain ID: 545)</li>
+                <li>Make sure you&apos;re connected to Flow Testnet (Chain ID: 545)</li>
                 <li>Get testnet FLOW tokens from a faucet</li>
                 <li>Check your internet connection</li>
                 <li>Try refreshing the page</li>

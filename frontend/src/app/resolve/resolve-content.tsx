@@ -2,12 +2,46 @@
 
 import React, { useState } from 'react';
 import { useAccount } from 'wagmi';
-import { useVoteOnChallenge, useTransactionStatus, useAllChallengeDetails, useResolveChallenge, usePendingClaimsDetails } from '@/hooks/useSkillVerification';
+import { useVoteOnChallenge, useTransactionStatus, useAllChallengeDetails, useResolveChallenge, usePendingClaimsDetails, useIsContractOwner } from '@/hooks/useSkillVerification';
+import { useContractEvents, useContractChallenges } from '@/hooks/useContractEvents';
 import { SKILL_CLAIM_STATUS } from '@/lib/contracts';
+
+interface SkillClaim {
+  claimId: number;
+  user: string;
+  skillId: string;
+  stakeAmount: string;
+  status: number;
+  claimTimestamp: number;
+  problemDeadline: number;
+  challengeDeadline: number;
+  problemSolved: boolean;
+  problemStatement: string;
+  solution: string;
+}
+
+interface Challenge {
+  challengeId: number;
+  challenger: string;
+  stakeAmount: string;
+  reason: string;
+  claimId: number;
+  challengeTimestamp: number;
+  claimant: string;
+  skillId: string;
+  claimStatus: number;
+  problemSolved: boolean;
+  problemStatement: string;
+  solution: string;
+}
 
 const ResolvePageContent = () => {
   const { isConnected, address } = useAccount();
   const { data: challengeDetails, isLoading: challengesLoading, error: challengesError } = useAllChallengeDetails();
+  
+  // Use event-based data to get all claims and challenges
+  const { data: allClaims, isLoading: eventsLoading, error: eventsError, refetch: refetchEvents } = useContractEvents();
+  const { data: challengeEvents, isLoading: challengeEventsLoading } = useContractChallenges();
   
   // Fallback to usePendingClaimsDetails if getAllChallengeDetails fails
   const { data: fallbackClaims, isLoading: fallbackLoading, error: fallbackError } = usePendingClaimsDetails();
@@ -15,6 +49,7 @@ const ResolvePageContent = () => {
   const { resolveChallenge, hash: resolveHash, error: resolveError, isPending: isResolvePending } = useResolveChallenge();
   const { isLoading: isConfirming, isSuccess } = useTransactionStatus(hash);
   const { isLoading: isResolveConfirming, isSuccess: isResolveSuccess } = useTransactionStatus(resolveHash);
+  const { data: contractOwner } = useIsContractOwner(address);
 
   const [selectedChallenge, setSelectedChallenge] = useState<number | null>(null);
   const [supportsClaimant, setSupportsClaimant] = useState<boolean>(true);
@@ -46,44 +81,92 @@ const ResolvePageContent = () => {
       return;
     }
 
+    // Check if user is contract owner
+    const isOwner = contractOwner && address && contractOwner.toLowerCase() === address.toLowerCase();
+    if (!isOwner) {
+      alert('Only the contract owner can resolve challenges. Please switch to the owner account.');
+      return;
+    }
+
+    console.log('Attempting to resolve challenge for claim ID:', claimId);
+    console.log('Connected address:', address);
+    console.log('Contract owner:', contractOwner);
+
     try {
       await resolveChallenge(claimId);
+      console.log('Resolve challenge transaction submitted');
     } catch (err) {
       console.error('Error resolving challenge:', err);
+      alert(`Error resolving challenge: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
-  // Use fallback data if getAllChallengeDetails fails
-  const useFallback = challengesError && !challengesLoading;
-  const currentData = useFallback ? fallbackClaims : challengeDetails;
-  const currentLoading = useFallback ? fallbackLoading : challengesLoading;
-  const currentError = useFallback ? fallbackError : challengesError;
+  // Create challenged claims from event-based data
+  const challengedClaims = React.useMemo(() => {
+    // If we have the new contract function data, use it
+    if (challengeDetails && !challengesError) {
+      return challengeDetails.filter((challenge: Challenge) => challenge.claimStatus === SKILL_CLAIM_STATUS.CHALLENGED) || [];
+    }
+    
+    // Otherwise, combine event-based claims with challenge events
+    if (allClaims && challengeEvents) {
+      const challengedClaimsMap = new Map();
+      
+      // Get all challenged claims from the claims data
+      const challengedClaimsFromEvents = allClaims.filter((claim: SkillClaim) => claim.status === SKILL_CLAIM_STATUS.CHALLENGED);
+      
+      // Create a map of challenge details by claim ID
+      const challengeDetailsMap = new Map();
+      challengeEvents.forEach((challenge: Challenge) => {
+        challengeDetailsMap.set(challenge.claimId, challenge);
+      });
+      
+      // Combine claim data with challenge details
+      return challengedClaimsFromEvents.map((claim: SkillClaim) => {
+        const challengeDetail = challengeDetailsMap.get(claim.claimId) || {};
+        
+        return {
+          challengeId: challengeDetail.claimId || claim.claimId,
+          challenger: challengeDetail.challenger || '0x0000000000000000000000000000000000000000',
+          stakeAmount: challengeDetail.stakeAmount || claim.stakeAmount,
+          reason: challengeDetail.reason || 'Challenge reason not available',
+          claimId: claim.claimId,
+          challengeTimestamp: challengeDetail.challengeTimestamp || claim.claimTimestamp,
+          claimant: claim.user,
+          skillId: claim.skillId,
+          claimStatus: claim.status,
+          problemSolved: claim.problemSolved,
+          problemStatement: claim.problemStatement,
+          solution: claim.solution
+        };
+      });
+    }
+    
+    // Final fallback - use pending claims data but filter for challenged (shouldn't happen)
+    if (fallbackClaims) {
+      return fallbackClaims
+        .filter((claim: SkillClaim) => claim.status === SKILL_CLAIM_STATUS.CHALLENGED)
+        .map((claim: SkillClaim, index: number) => ({
+          challengeId: index + 1,
+          challenger: '0x0000000000000000000000000000000000000000',
+          stakeAmount: claim.stakeAmount,
+          reason: 'Challenge details not available',
+          claimId: claim.claimId || index + 1,
+          challengeTimestamp: claim.claimTimestamp,
+          claimant: claim.user,
+          skillId: claim.skillId,
+          claimStatus: claim.status,
+          problemSolved: claim.problemSolved,
+          problemStatement: claim.problemStatement,
+          solution: claim.solution
+        }));
+    }
+    
+    return [];
+  }, [challengeDetails, challengesError, allClaims, challengeEvents, fallbackClaims]);
 
-  // Filter to get only challenged claims (status 1 = CHALLENGED)
-  // If using fallback, we need to transform the data structure
-  let challengedClaims: any[] = [];
-  
-  if (useFallback && currentData) {
-    // Transform fallback data to match challenge structure
-    challengedClaims = currentData
-      .filter((claim: any) => claim.status === SKILL_CLAIM_STATUS.CHALLENGED)
-      .map((claim: any, index: number) => ({
-        challengeId: index + 1,
-        challenger: '0x0000000000000000000000000000000000000000', // Unknown challenger
-        stakeAmount: claim.stakeAmount,
-        reason: 'Challenge details not available',
-        claimId: index + 1,
-        challengeTimestamp: claim.claimTimestamp,
-        claimant: claim.user,
-        skillId: claim.skillId,
-        claimStatus: claim.status,
-        problemSolved: claim.problemSolved,
-        problemStatement: claim.problemStatement,
-        solution: claim.solution
-      }));
-  } else if (currentData) {
-    challengedClaims = currentData.filter((challenge: any) => challenge.claimStatus === SKILL_CLAIM_STATUS.CHALLENGED) || [];
-  }
+  const currentLoading = challengesLoading || eventsLoading || challengeEventsLoading || fallbackLoading;
+  const currentError = challengesError || eventsError;
 
   const getStatusText = (status: number) => {
     switch (status) {
@@ -123,6 +206,30 @@ const ResolvePageContent = () => {
       <div className="max-w-6xl mx-auto">
         <div className="mb-10 text-center">
           <h1 className="text-5xl font-light text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500">Resolve Challenges</h1>
+          <p className="text-xl text-gray-600 font-light mt-4">
+            Vote on challenged skill claims to help resolve disputes
+          </p>
+          {contractOwner && address && (
+            <div className="mt-4 p-3 rounded-xl text-sm">
+              {contractOwner.toLowerCase() === address.toLowerCase() ? (
+                <div className="bg-green-50 border border-green-300 text-green-700">
+                  ✅ You are the contract owner - you can resolve challenges
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-300 text-yellow-700">
+                  ⚠️ You are not the contract owner - you can vote but cannot resolve challenges
+                  <br />
+                  <span className="text-xs">Owner: {`${contractOwner.slice(0, 6)}...${contractOwner.slice(-4)}`}</span>
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            onClick={() => refetchEvents?.()}
+            className="mt-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-normal py-2 px-6 rounded-xl shadow-md transition-all duration-300"
+          >
+            🔄 Refresh Challenges
+          </button>
         </div>
 
         {(error || resolveError) && (
@@ -143,14 +250,19 @@ const ResolvePageContent = () => {
           </div>
         )}
 
-        {currentError && (
+        {challengesError && (
+          <div className="bg-yellow-50 border border-yellow-300 text-yellow-700 px-4 py-3 rounded-xl mb-4">
+            <div className="font-semibold">Using Event-Based Data</div>
+            <div className="text-sm mt-1">
+              The getAllChallengeDetails function is not available on the deployed contract. 
+              Using blockchain events to reconstruct challenge data. All functionality is available.
+            </div>
+          </div>
+        )}
+
+        {currentError && !challengesError && (
           <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl mb-4">
-            Error loading challenges: {currentError}
-            {useFallback && (
-              <div className="mt-2 text-sm text-red-600">
-                Note: Using fallback data. The contract may need to be redeployed with the latest getAllChallengeDetails function.
-              </div>
-            )}
+            Error loading challenge data: {currentError}
           </div>
         )}
 
@@ -160,7 +272,7 @@ const ResolvePageContent = () => {
           </div>
         ) : challengedClaims && challengedClaims.length > 0 ? (
           <div className="space-y-8">
-            {challengedClaims.map((challenge: any, index: number) => {
+            {challengedClaims.map((challenge: Challenge, index: number) => {
               return (
                 <div key={index} className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
                   <div className="flex justify-between items-start mb-4">
@@ -218,7 +330,15 @@ const ResolvePageContent = () => {
                   <div className="mb-6 p-6 bg-red-50 rounded-xl">
                     <h4 className="font-semibold text-red-800 mb-2">Challenge Information:</h4>
                     <p className="text-red-700 mb-2"><strong>Reason:</strong> {challenge.reason}</p>
-                    <p className="text-red-700">This claim has been challenged and is awaiting resolution.</p>
+                    <p className="text-red-700 mb-2">This claim has been challenged and is awaiting resolution.</p>
+                    <div className="text-sm text-red-600 mt-3 p-3 bg-red-100 rounded-lg">
+                      <p><strong>Resolution Requirements:</strong></p>
+                      <ul className="list-disc list-inside mt-1">
+                        <li>Only contract owner can resolve challenges</li>
+                        <li>At least one vote must be cast before resolution</li>
+                        <li>Claim must be in CHALLENGED status</li>
+                      </ul>
+                    </div>
                   </div>
 
                   {selectedChallenge === index ? (
@@ -271,13 +391,15 @@ const ResolvePageContent = () => {
                                           >
                                             {isPending ? 'Confirming...' : isConfirming ? 'Processing...' : 'Submit Vote'}
                                           </button>
-                                          <button
-                                            onClick={() => handleResolveChallenge(challenge.claimId)}
-                                            disabled={isResolvePending || isResolveConfirming}
-                                            className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-normal py-3 px-8 rounded-xl shadow-md transition-all duration-300"
-                                          >
-                                            {isResolvePending ? 'Confirming...' : isResolveConfirming ? 'Processing...' : 'Resolve Challenge'}
-                                          </button>
+                                          {contractOwner && address && contractOwner.toLowerCase() === address.toLowerCase() && (
+                                            <button
+                                              onClick={() => handleResolveChallenge(challenge.claimId)}
+                                              disabled={isResolvePending || isResolveConfirming}
+                                              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-300 disabled:to-gray-400 text-white font-normal py-3 px-8 rounded-xl shadow-md transition-all duration-300"
+                                            >
+                                              {isResolvePending ? 'Confirming...' : isResolveConfirming ? 'Processing...' : 'Resolve Challenge'}
+                                            </button>
+                                          )}
                           <button
                             onClick={() => setSelectedChallenge(null)}
                             className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-normal py-3 px-8 rounded-xl transition-all duration-300"
@@ -301,7 +423,17 @@ const ResolvePageContent = () => {
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
-            <p className="text-gray-500">No active challenges found</p>
+            <p className="text-gray-500 mb-4">No active challenges found</p>
+            <div className="text-sm text-gray-400">
+              <p>Debug: Total claims: {allClaims?.length || 0}</p>
+              <p>Challenge events: {challengeEvents?.length || 0}</p>
+              <p>Challenged claims: {challengedClaims?.length || 0}</p>
+              {allClaims && allClaims.length > 0 && (
+                <div className="mt-2">
+                  <p>Claim statuses: {allClaims.map((c: SkillClaim) => `${c.claimId}:${c.status}`).join(', ')}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

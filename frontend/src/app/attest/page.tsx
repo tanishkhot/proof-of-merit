@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { useStakeClaim, useSubmitSolution, useTransactionStatus, useAvailableSkills, useSkillProblemStatement } from '@/hooks/useSkillVerification';
+import { useStakeClaim, useSubmitSolution, useTransactionStatus, useAvailableSkills, useSkillProblemStatement, useClaimIdFromTransaction } from '@/hooks/useSkillVerification';
 
 const AttestPage = () => {
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const { stakeClaim, hash: stakeHash, error: stakeError, isPending: isStakePending } = useStakeClaim();
   const { submitSolution, hash: solutionHash, error: solutionError, isPending: isSolutionPending } = useSubmitSolution();
   const { isLoading: isStakeConfirming, isSuccess: isStakeSuccess } = useTransactionStatus(stakeHash);
   const { isLoading: isSolutionConfirming, isSuccess: isSolutionSuccess } = useTransactionStatus(solutionHash);
+  const extractedClaimId = useClaimIdFromTransaction(stakeHash);
   
   const { data: availableSkills, isLoading: skillsLoading } = useAvailableSkills();
   const [selectedSkill, setSelectedSkill] = useState('');
@@ -19,6 +20,7 @@ const AttestPage = () => {
   const [timeUp, setTimeUp] = useState(false);
   const [solution, setSolution] = useState('');
   const [currentStep, setCurrentStep] = useState<'select' | 'solve' | 'submit'>('select');
+  const [currentClaimId, setCurrentClaimId] = useState<number | null>(null);
 
   useEffect(() => {
     if (timeLeft === 0) {
@@ -32,6 +34,23 @@ const AttestPage = () => {
 
     return () => clearInterval(timerId);
   }, [timeLeft]);
+
+  // Handle successful stake transaction and claim ID extraction
+  useEffect(() => {
+    if (isStakeSuccess && extractedClaimId) {
+      console.log('Stake successful, moving to solve step with claim ID:', extractedClaimId);
+      setCurrentClaimId(extractedClaimId);
+      setCurrentStep('solve');
+    }
+  }, [isStakeSuccess, extractedClaimId]);
+
+  // Handle successful solution submission
+  useEffect(() => {
+    if (isSolutionSuccess) {
+      console.log('Solution submitted successfully');
+      setCurrentStep('submit');
+    }
+  }, [isSolutionSuccess]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -53,7 +72,7 @@ const AttestPage = () => {
 
     try {
       await stakeClaim(selectedSkill);
-      setCurrentStep('solve');
+      // Don't set step here - wait for transaction success and claim ID extraction
     } catch (err) {
       console.error('Error staking claim:', err);
     }
@@ -65,11 +84,15 @@ const AttestPage = () => {
       return;
     }
 
+    if (!currentClaimId) {
+      alert('No claim ID available. Please try staking the claim again.');
+      return;
+    }
+
     try {
-      // Note: In a real implementation, you'd need to get the claim ID from the stake transaction
-      // For now, we'll use a placeholder
-      await submitSolution(1, solution);
-      setCurrentStep('submit');
+      console.log('Submitting solution for claim ID:', currentClaimId);
+      await submitSolution(currentClaimId, solution);
+      // Don't set step here - wait for transaction success
     } catch (err) {
       console.error('Error submitting solution:', err);
     }
@@ -156,6 +179,9 @@ const AttestPage = () => {
               
               <div className="mb-6">
                 <h3 className="text-xl font-normal text-gray-800 mb-2">Skill: {selectedSkill}</h3>
+                {currentClaimId && (
+                  <p className="text-sm text-purple-600 mb-2">Claim ID: {currentClaimId}</p>
+                )}
                 <div className="p-5 bg-gray-50 rounded-xl">
                   <p className="text-gray-700">{problemStatement}</p>
                 </div>
@@ -199,7 +225,14 @@ const AttestPage = () => {
                 Your solution has been submitted. Now wait for the challenge period to end or for someone to challenge your claim.
               </p>
               <button 
-                onClick={() => setCurrentStep('select')}
+                onClick={() => {
+                  setCurrentStep('select');
+                  setCurrentClaimId(null);
+                  setSelectedSkill('');
+                  setSolution('');
+                  setTimeLeft(2 * 60 * 60);
+                  setTimeUp(false);
+                }}
                 className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-normal py-3 px-8 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105"
               >
                 Claim Another Skill

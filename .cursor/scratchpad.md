@@ -288,3 +288,180 @@ The Crucible project is a skill verification platform that consists of three mai
 - ✅ **Clean Layout**: Consistent navigation across all pages
 
 **Ready for Production**: The application now has a complete owner dashboard with all contract management functions and a professional navigation system.
+
+## Latest Bug Fixes
+
+**React Key Prop Error - RESOLVED** ✅
+- **Issue**: Console error "Each child in a list should have a unique 'key' prop" in RecruitPage component
+- **Location**: `/frontend/src/app/recruit/page.tsx` line 120
+- **Root Cause**: Using `key={skill}` in requirements.map() which could potentially have duplicate values
+- **Solution**: Changed to `key={`${skill}-${index}`}` to ensure unique keys by combining skill name with array index
+- **Status**: ✅ Fixed - No more React key prop warnings
+
+**Claim Status Not Updating in /challenges Page - RESOLVED** ✅
+- **Issue**: Claim status not updating in real-time on the challenges page after transactions
+- **Location**: `/frontend/src/app/challenges/challenges-content.tsx` and related hooks
+- **Root Cause**: Multiple issues identified:
+  1. Page only used `usePendingClaimsDetails()` which filters out non-pending claims
+  2. No automatic refetching after successful transactions
+  3. No real-time updates for status changes
+  4. Missing integration with event-based data
+- **Solution**: Comprehensive fix implemented:
+  1. **Dual Data Sources**: Combined `usePendingClaimsDetails()` with `useContractEvents()` for complete claim visibility
+  2. **Automatic Refetching**: Added 15-second intervals to `useContractEvents` hook for real-time updates
+  3. **Transaction-based Updates**: Added automatic refetching after successful challenge transactions
+  4. **Manual Refresh**: Added "🔄 Refresh Claims" button for immediate updates
+  5. **Delayed Refetch**: Added 2-second delayed refetch to ensure blockchain state propagation
+- **Technical Changes**:
+  - Modified `useContractEvents` to include `refetch` function and automatic polling
+  - Updated challenges page to use both pending claims and event-based claims
+  - Added `useEffect` to trigger refetches on transaction success
+  - Enhanced error handling and loading states
+- **Status**: ✅ Fixed - Claims now update in real-time and show all status transitions
+
+**Solution Submission Flow Broken - RESOLVED** ✅
+- **Issue**: Solution submission not updating claim state to show "Submitted solution", preventing proper challenge flow
+- **Location**: `/frontend/src/app/attest/page.tsx` and `/frontend/src/hooks/useSkillVerification.ts`
+- **Root Cause**: Critical flow issues identified:
+  1. **Hardcoded Claim ID**: Line 71 used `submitSolution(1, solution)` - always claim ID 1
+  2. **No Claim ID Tracking**: App didn't capture real claim ID from `ClaimStaked` event
+  3. **Wrong Step Progression**: UI moved to 'submit' step immediately, not after transaction success
+  4. **Missing Event Integration**: No listening for `ProblemSolved` event to update UI state
+- **Solution**: Complete overhaul of solution submission flow:
+  1. **Event-based Claim ID Extraction**: Created `useClaimIdFromTransaction()` hook to parse `ClaimStaked` events and extract real claim ID
+  2. **Transaction-based Flow Control**: Added proper `useEffect` hooks to manage step progression based on transaction success
+  3. **Dynamic Claim ID Usage**: Solution submission now uses the actual extracted claim ID instead of hardcoded value
+  4. **Proper State Management**: Added `currentClaimId` state and proper reset functionality
+  5. **Enhanced UI Feedback**: Added claim ID display and better transaction status handling
+- **Technical Implementation**:
+  - Added `useClaimIdFromTransaction()` hook with viem event parsing
+  - Modified `handleStakeClaim()` to wait for transaction success before step progression
+  - Fixed `handleSubmitSolution()` to use extracted claim ID and proper validation
+  - Added transaction success listeners for both stake and solution submission
+  - Enhanced UI with claim ID display and proper reset functionality
+- **Key Changes**:
+  ```tsx
+  // Before: Hardcoded claim ID
+  await submitSolution(1, solution);
+  
+  // After: Dynamic claim ID from blockchain event
+  const extractedClaimId = useClaimIdFromTransaction(stakeHash);
+  await submitSolution(currentClaimId, solution);
+  ```
+- **Status**: ✅ Fixed - Solution submission now properly tracks claim IDs and updates blockchain state, enabling proper challenge flow
+
+**Resolve Page Not Showing Challenged Submissions - RESOLVED** ✅
+- **Issue**: Admin resolve page showing "No active challenges found" even when challenged submissions exist
+- **Location**: `/frontend/src/app/resolve/resolve-content.tsx` and related hooks
+- **Root Cause**: Multiple data fetching issues identified:
+  1. **Missing Contract Function**: `useAllChallengeDetails()` calls non-existent `getAllChallengeDetails()` function
+  2. **Broken Fallback Logic**: Fallback used `usePendingClaimsDetails()` which only returns PENDING claims, not CHALLENGED ones
+  3. **Data Structure Mismatch**: Fallback tried to transform pending claims into challenge format incorrectly
+  4. **No Event Integration**: Not properly combining claim events with challenge events
+- **Solution**: Complete overhaul of resolve page data fetching:
+  1. **Event-Based Data Reconstruction**: Combined `useContractEvents()` and `useContractChallenges()` to reconstruct challenge data
+  2. **Smart Data Merging**: Created logic to merge claim data with challenge event data for complete information
+  3. **Proper Fallback Chain**: Implemented proper fallback hierarchy (contract function → events → pending claims)
+  4. **Enhanced Debugging**: Added comprehensive debugging information to troubleshoot data issues
+  5. **Manual Refresh**: Added refresh button for immediate data updates
+- **Technical Implementation**:
+  - Modified resolve page to use `useContractEvents()` and `useContractChallenges()` hooks
+  - Created `React.useMemo()` logic to combine claims and challenge events intelligently
+  - Added proper loading states and error handling for multiple data sources
+  - Implemented debug information display to show data availability
+  - Enhanced UI with refresh functionality and better user feedback
+- **Key Changes**:
+  ```tsx
+  // Before: Broken fallback logic
+  const useFallback = (challengesError && !challengesLoading) || (!challengeDetails && !challengesLoading);
+  const currentData = useFallback ? fallbackClaims : challengeDetails;
+  
+  // After: Event-based data reconstruction
+  const challengedClaims = React.useMemo(() => {
+    if (allClaims && challengeEvents) {
+      const challengedClaimsFromEvents = allClaims.filter(claim => claim.status === CHALLENGED);
+      return challengedClaimsFromEvents.map(claim => ({
+        ...claim,
+        ...challengeDetailsMap.get(claim.claimId)
+      }));
+    }
+  }, [allClaims, challengeEvents]);
+  ```
+- **Status**: ✅ Fixed - Resolve page now properly displays challenged submissions using blockchain event data reconstruction
+
+**Frontend Frequent Reloading Issue - RESOLVED** ✅
+- **Issue**: Frontend reloading every few seconds, especially on resolver side, causing poor user experience
+- **Location**: Multiple hooks with aggressive polling intervals
+- **Root Cause**: Multiple overlapping polling intervals causing excessive re-renders:
+  1. **`useContractEvents`**: 15-second interval
+  2. **`usePendingClaimsDetails`**: 10-second interval
+  3. **`useUserSkills`**: 30-second interval
+  4. **`useAvailableSkills`**: 30-second interval
+  5. **`useSkillClaim`**: 10-second interval
+  6. **Multiple other hooks**: Various 10-second intervals
+- **Impact**: When multiple components used these hooks simultaneously, overlapping refreshes created constant re-renders
+- **Solution**: Optimized polling intervals across all hooks:
+  1. **Reduced High-Frequency Polling**: Changed 10-15 second intervals to 60 seconds
+  2. **Reduced Medium-Frequency Polling**: Changed 30-second intervals to 2 minutes
+  3. **Maintained Functionality**: Kept manual refresh buttons for immediate updates when needed
+  4. **Removed Debug Renders**: Eliminated debug info that was causing extra re-renders
+- **Technical Changes**:
+  - `useContractEvents`: 15s → 60s interval
+  - `usePendingClaimsDetails`: 10s → 60s interval
+  - `useUserSkills`: 30s → 2min interval
+  - `useAvailableSkills`: 30s → 2min interval
+  - `useSkillClaim`: 10s → 60s interval
+  - `usePendingClaims`: 10s → 60s interval
+  - `usePendingClaimIds`: 10s → 60s interval
+  - `useAllChallengeDetails`: 10s → 60s interval
+- **Performance Impact**:
+  - **Before**: 6+ network requests every 10-15 seconds = ~24-36 requests/minute
+  - **After**: 8 network requests every 60-120 seconds = ~4-8 requests/minute
+  - **Improvement**: ~85% reduction in network requests and re-renders
+- **User Experience**: 
+  - No more constant "reloading" feeling
+  - Smooth navigation between pages
+  - Manual refresh buttons available for immediate updates
+  - Maintained real-time functionality for important updates
+- **Status**: ✅ Fixed - Frontend now has smooth performance with significantly reduced polling while maintaining all functionality
+
+**Resolve Dispute Button Not Working - RESOLVED** ✅
+- **Issue**: Resolve dispute button not calling contract function despite wallet signing
+- **Location**: `/frontend/src/app/resolve/resolve-content.tsx` and `resolveChallenge` smart contract function
+- **Root Cause**: Multiple permission and requirement issues:
+  1. **Owner-Only Function**: `resolveChallenge()` has `onlyOwner` modifier - only contract owner can call it
+  2. **Missing Vote Requirement**: Contract requires `votes.length > 0` before resolution can happen
+  3. **No Permission Checking**: Frontend didn't verify if user was contract owner before attempting transaction
+  4. **Poor Error Feedback**: No clear messaging about why the function call failed
+- **Solution**: Comprehensive permission and requirement system:
+  1. **Owner Verification**: Added `useIsContractOwner()` hook to check if current user is contract owner
+  2. **Frontend Permission Checks**: Added checks before transaction to prevent failed calls
+  3. **Clear User Feedback**: Added visual indicators showing owner status and requirements
+  4. **Conditional UI**: Only show "Resolve Challenge" button to contract owner
+  5. **Enhanced Error Handling**: Added detailed error messages and debugging logs
+- **Technical Implementation**:
+  - Created `useIsContractOwner()` hook to fetch contract owner address
+  - Added owner verification in `handleResolveChallenge()` before transaction
+  - Added visual indicators showing owner status and requirements
+  - Conditionally rendered "Resolve Challenge" button only for owner
+  - Enhanced error messages with specific failure reasons
+- **Smart Contract Requirements**:
+  ```solidity
+  function resolveChallenge(uint256 _claimId) public onlyOwner {
+      require(claims[_claimId].status == Status.CHALLENGED, "Claim is not challenged");
+      require(votes.length > 0, "No votes cast yet");
+      // ... resolution logic
+  }
+  ```
+- **UI Improvements**:
+  - ✅ Owner status indicator (green for owner, yellow for non-owner)
+  - ✅ Clear requirements list showing what's needed for resolution
+  - ✅ Conditional button display (only owners see "Resolve Challenge")
+  - ✅ Detailed error messages explaining why resolution failed
+  - ✅ Debug logging for troubleshooting transaction issues
+- **User Experience**:
+  - Non-owners see clear message they can vote but not resolve
+  - Owners see confirmation they have resolution permissions
+  - Failed transactions show specific error reasons
+  - Requirements clearly displayed before attempting resolution
+- **Status**: ✅ Fixed - Resolve dispute now works correctly with proper permission checks, clear requirements, and enhanced user feedback
